@@ -1,0 +1,64 @@
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  application:
+    name: campus-repair
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
+  datasource:
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:campus_repair}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:campus_repair}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 5000
+      validation-timeout: 3000
+  sql:
+    init:
+      mode: never
+  jackson:
+    time-zone: Asia/Shanghai
+  messages:
+    encoding: UTF-8
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    local-cache-scope: statement
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: campus-repair
+    ttl-seconds: ${JWT_TTL_SECONDS:7200}
+  upload:
+    directory: ${UPLOAD_DIRECTORY:./uploads}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+
+logging:
+  level:
+    root: INFO
+    com.campus.repair: INFO
+  file:
+    name: ${LOG_FILE:logs/campus-repair.log}
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB
