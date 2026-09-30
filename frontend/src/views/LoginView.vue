@@ -25,11 +25,11 @@ const rules: FormRules = {
 
 async function submit() {
   if (loading.value) return
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
   loading.value = true
-  errorMessage.value = ''
   try {
+    const valid = await formRef.value?.validate().catch(() => false)
+    if (!valid) return
+    errorMessage.value = ''
     await auth.signIn({ username: form.username.trim(), password: form.password })
     form.password = ''
     await router.replace(auth.homePath)
@@ -64,7 +64,7 @@ async function submit() {
         <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
           <ElFormItem label="账号" prop="username">
             <ElInput v-model="form.username" name="username" placeholder="请输入学号或工号"
-              autocomplete="username" :maxlength="64" :disabled="loading" size="large" />
+              autocomplete="username" autocapitalize="none" :spellcheck="false" :maxlength="64" :disabled="loading" size="large" />
           </ElFormItem>
           <ElFormItem label="密码" prop="password">
             <ElInput v-model="form.password" name="password" type="password" show-password

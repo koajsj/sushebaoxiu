@@ -11,4 +11,5 @@ public class RepairRecordEntity {
     private String imageUrl;
     private java.time.LocalDateTime startTime;
     private java.time.LocalDateTime finishTime;
+    private Integer roundNo;
 }

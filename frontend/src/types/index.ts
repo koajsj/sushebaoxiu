@@ -11,11 +11,6 @@ export interface PageResult<T> {
   size: number
 }
 
-export interface HealthStatus {
-  application: 'UP'
-  database: 'UP'
-}
-
 export type Role = 'student' | 'worker' | 'admin'
 
 export type UserRole = 'STUDENT' | 'WORKER' | 'ADMIN'

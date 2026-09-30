@@ -1,4 +1,4 @@
-"""Small real-HTTP Phase 5 acceptance check. Mutates only its named isolated DB."""
+"""Final bounded real-HTTP core acceptance check. Mutates only its named isolated DB."""
 from pathlib import Path
 from decimal import Decimal,ROUND_HALF_UP
 from urllib import request, error
@@ -31,13 +31,14 @@ def check(condition,name):
 # A second student exists only in the isolated database, to test order ownership.
 sql("INSERT INTO `user`(username,password,real_name,role,status,token_version) SELECT 'student_phase5',password,'其他学生','STUDENT',1,0 FROM `user` WHERE username='student001' AND NOT EXISTS(SELECT 1 FROM `user` WHERE username='student_phase5')")
 sql("INSERT INTO student(user_id,student_no,college,class_name,building_id,room_no) SELECT u.id,'2026999002','测试学院','测试班',s.building_id,'302' FROM `user` u JOIN `user` origin ON origin.username='student001' JOIN student s ON s.user_id=origin.id WHERE u.username='student_phase5' AND NOT EXISTS(SELECT 1 FROM student x WHERE x.user_id=u.id)")
+check(call('/api/auth/login',method='POST',body={'username':'student001','password':'wrong-password'})[0]==401,'wrong password rejected')
 admin,student,other,worker,unrelated=[login(name) for name in ('admin001','student001','student_phase5','worker002','worker001')]
 check(call('/api/admin/statistics/overview')[0]==401,'anonymous statistics denied')
 check(call('/api/admin/statistics/overview',student)[0]==403,'student statistics denied')
 check(call('/api/notifications')[0]==401,'anonymous notifications denied')
 initial=data('/api/admin/statistics/overview',admin)
 check(initial['totalCount']==int(sql('SELECT COUNT(*) FROM repair_order')),'overview uses real order count')
-check(initial['activeCount']==int(sql("SELECT COUNT(*) FROM repair_order WHERE status IN ('ASSIGNED','PROCESSING','WAIT_CONFIRM')")),'active count matches SQL')
+check(initial['activeCount']==int(sql("SELECT COUNT(*) FROM repair_order WHERE status IN ('ASSIGNED','PROCESSING','WAIT_CONFIRM','REWORK_PENDING')")),'active count matches SQL')
 types=data('/api/admin/statistics/types',admin)
 check(sum(item['count'] for item in types)==initial['totalCount'],'type counts match all orders')
 check(len(data('/api/admin/statistics/trend',admin))==14,'trend has fourteen dated points')
@@ -85,13 +86,16 @@ latest=int(sql(f'SELECT MAX(id) FROM chat_message WHERE order_id={order}'))
 check(len(data(f'/api/orders/{order}/messages',student))==100,'conversation returns latest bounded page')
 check(int(sql(f'SELECT read_status FROM chat_message WHERE id={oldest}'))==0 and
       int(sql(f'SELECT read_status FROM chat_message WHERE id={latest}'))==1,'only displayed messages become read')
+data(f'/api/worker/orders/{order}/accept',worker,'PUT')
 data(f'/api/worker/orders/{order}/start',worker,'PUT')
 data('/api/worker/repair-record',worker,'POST',{'orderId':order,'content':'更换灯具并测试'})
 data(f'/api/worker/orders/{order}/finish',worker,'PUT')
 check(any(n['title']=='维修已完成' for n in data('/api/notifications',student)['records']),'finish notification')
 data(f'/api/student/orders/{order}/confirm',student,'PUT')
-data('/api/student/evaluation',student,'POST',{'orderId':order,'score':5,'content':'已解决'})
+data('/api/student/evaluation',student,'POST',{'orderId':order,'score':4,'content':'已解决'})
 check(data(f'/api/orders/{order}',student)['order']['status']=='COMMENTED','core evaluation flow preserved')
+check(sql(f'SELECT score FROM worker WHERE id=(SELECT worker_id FROM repair_order WHERE id={order})')==sql(f'SELECT ROUND(AVG(CAST(e.score AS DECIMAL(20,12))),2) FROM evaluation e JOIN repair_order o ON o.id=e.order_id WHERE o.worker_id=(SELECT worker_id FROM repair_order WHERE id={order})'),'worker average rating matches SQL aggregate')
+check(call('/api/student/evaluation',student,'POST',{'orderId':order,'score':1})[0]==409,'repeated evaluation denied')
 updated=data('/api/admin/statistics/overview',admin)
 check(updated['totalCount']==int(sql('SELECT COUNT(*) FROM repair_order')),'updated overview matches persisted data')
 completed=int(sql("SELECT COUNT(*) FROM repair_order WHERE status IN ('FINISHED','COMMENTED')"))
@@ -108,4 +112,4 @@ check(data(f'/api/orders/{manual}',admin)['order']['status']=='WAIT_ASSIGN','man
 check(any(n['title']=='收到新维修任务' and f'#{manual}' in n['content'] for n in data('/api/notifications',unrelated)['records']),'manual assignment also notifies worker')
 data(f'/api/worker/orders/{manual}/accept',unrelated,'PUT')
 check(data(f'/api/orders/{manual}',admin)['order']['status']=='ASSIGNED','manual accept preserved')
-print('Phase 5 isolated HTTP acceptance passed')
+print('Final isolated HTTP core acceptance passed')

@@ -21,14 +21,13 @@ class DispatchServiceTest {
     private final RepairTypeMapper types=mock(RepairTypeMapper.class);
     private final WorkerMapper workers=mock(WorkerMapper.class);
     private final DispatchRecordMapper records=mock(DispatchRecordMapper.class);
-    private final OrderEventMapper events=mock(OrderEventMapper.class);
     private final OrderAccessService access=mock(OrderAccessService.class);
     private final DispatchDataService data=mock(DispatchDataService.class);
-    private final NotificationService notifications=mock(NotificationService.class);
+    private final OrderWorkflowService workflow=mock(OrderWorkflowService.class);
     private final Clock clock=mock(Clock.class);
     private final AtomicReference<Instant> time=new AtomicReference<>(Instant.parse("2026-09-30T00:00:00Z"));
     private final DispatchAlgorithm algorithm=new DispatchAlgorithm();
-    private final DispatchService service=new DispatchService(orders,buildings,types,workers,records,events,access,data,algorithm,notifications,clock);
+    private final DispatchService service=new DispatchService(orders,buildings,types,workers,records,access,data,algorithm,clock,workflow);
     private final UserVO admin=new UserVO(3,"admin","管理员",null,UserRole.ADMIN);
     private DispatchRecordEntity setup() {
         when(clock.instant()).thenAnswer(call->time.get());
@@ -40,7 +39,7 @@ class DispatchServiceTest {
         var worker=new WorkerEntity();worker.setId(1L);worker.setUserId(2L);worker.setSkillType("电工");worker.setScore(new BigDecimal("5"));worker.setTaskCount(0);worker.setLongitude(building.getLongitude());worker.setLatitude(building.getLatitude());
         when(workers.lockById(1)).thenReturn(worker);when(data.activeLoads()).thenReturn(Map.of());when(data.name(worker)).thenReturn("维修员");
         var scores=algorithm.score(new DispatchAlgorithm.Input(type.getName(),type.getDescription(),worker.getSkillType(),116.3,39.9,116.3,39.9,0,5));
-        var snapshot=new DispatchRecordEntity();snapshot.setId(5L);snapshot.setOrderId(1L);snapshot.setWorkerId(1L);snapshot.setConfirmed(false);snapshot.setRecommendationBatch("test-batch");snapshot.setCreateTime(LocalDateTime.ofInstant(time.get(),ZoneId.of("Asia/Shanghai")));
+        var snapshot=new DispatchRecordEntity();snapshot.setRoundNo(1);snapshot.setId(5L);snapshot.setOrderId(1L);snapshot.setWorkerId(1L);snapshot.setConfirmed(false);snapshot.setRecommendationBatch("test-batch");snapshot.setCreateTime(LocalDateTime.ofInstant(time.get(),ZoneId.of("Asia/Shanghai")));
         snapshot.setReason(scores.reason());snapshot.setTotalScore(scores.totalScore());snapshot.setSkillScore(scores.skillScore());snapshot.setDistanceScore(scores.distanceScore());snapshot.setLoadScore(scores.loadScore());snapshot.setRatingScore(scores.ratingScore());
         when(records.selectById(5L)).thenReturn(snapshot);
         return snapshot;

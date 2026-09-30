@@ -1,4 +1,4 @@
-export interface Overview { todayCount:number; activeCount:number; completionRate:number; averageRepairHours:number; totalCount:number }
+export interface Overview { overdueCount:number; reworkCount:number; todayCount:number; activeCount:number; completionRate:number; averageRepairHours:number; totalCount:number }
 export interface TrendPoint { date:string; created:number; finished:number }
 export interface TypeCount { typeId:number; typeName:string; count:number; percentage:number }
 export interface WorkerCount { workerId:number; workerName:string; completedCount:number; activeCount:number; averageRating:number }

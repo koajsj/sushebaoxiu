@@ -1,16 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { OrderEvent } from '../types/repair'
 import { formatTime } from '../utils/format'
-defineProps<{ events:OrderEvent[] }>()
-const stages = [
-  {label:'提交报修',actions:['SUBMIT']}, {label:'管理员审核',actions:['AUDIT']},
-  {label:'派单与接单',actions:['ASSIGN','ACCEPT']}, {label:'维修处理',actions:['START']},
-  {label:'完成确认',actions:['FINISH','CONFIRM']}, {label:'学生评价',actions:['EVALUATE']},
-]
-const labels:Record<string,string>={SUBMIT:'已提交',AUDIT:'审核通过',ASSIGN:'已指定维修人员',ACCEPT:'维修人员已接单',START:'开始维修',FINISH:'维修完成，等待确认',CONFIRM:'学生已确认完成',EVALUATE:'已提交评价'}
+const props=defineProps<{events:OrderEvent[];status:string}>()
+const labels:Record<string,string>={SUBMIT:'提交报修',AUDIT:'审核通过',AUDIT_REJECT:'审核驳回',EDIT:'修改信息',RESUBMIT:'重新提交',ASSIGN:'安排维修人员',WORKER_REJECT:'维修人员拒单',ACCEPT:'接受任务',START:'开始维修',RECORD:'提交维修记录',FINISH:'维修完成，等待验收',CONFIRM:'验收通过',EVALUATE:'评价完成',ACCEPTANCE_FAIL:'验收未通过',REWORK_ORIGINAL:'原维修人员返工',REWORK_REDISPATCH:'返工重新派单',APPOINTMENT_PROPOSE:'提出预约',APPOINTMENT_ACCEPT:'预约已确认',APPOINTMENT_REJECT:'预约需调整',SLA_RESPONSE:'系统提醒 · 接单超时',SLA_REPAIR:'系统提醒 · 维修超时'}
+const rounds=computed(()=>{const grouped=new Map<number,OrderEvent[]>();for(const event of [...props.events].sort((a,b)=>a.id-b.id)){const round=event.roundNo||1;const rows=grouped.get(round)||[];rows.push(event);grouped.set(round,rows)}return [...grouped].map(([round,events])=>({round,events}))})
 </script>
-<template><ol class="order-timeline" aria-label="订单时间线"><li v-for="stage in stages" :key="stage.label" :class="{done:events.some(e=>stage.actions.includes(e.action))}">
-  <span class="timeline-dot" aria-hidden="true"></span><div><h3>{{ stage.label }}</h3>
-    <template v-for="event in events.filter(e=>stage.actions.includes(e.action))" :key="event.id"><p>{{ labels[event.action] }}<time>{{ formatTime(event.createTime) }}</time></p></template>
-    <p v-if="!events.some(e=>stage.actions.includes(e.action))" class="muted">等待处理</p>
-  </div></li></ol></template>
+<template><p v-if="!events.length" class="muted">暂无处理记录</p><details v-for="(group,index) in rounds" :key="group.round" class="timeline-round" :open="index===rounds.length-1"><summary>第 {{ group.round }} 轮维修 <small>{{ group.events.length }} 条记录</small></summary><ol class="order-timeline" aria-label="订单真实事件时间线"><li v-for="event in group.events" :key="event.id" class="done"><span class="timeline-dot" aria-hidden="true"/><div><h3>{{ labels[event.action]||'处理记录' }}</h3><p v-if="event.content" class="pre-wrap">{{ event.content }}</p><time>{{ formatTime(event.createTime) }}</time></div></li></ol></details></template>

@@ -26,7 +26,7 @@ public class OrderMessageService {
     private final Clock clock;
     private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
     private RepairOrderEntity allowed(UserVO user,long orderId){
-        var order=orders.selectById(orderId);access.requireView(user,order);return order;
+        var order=orders.lockById(orderId);access.requireView(user,order);return order;
     }
     private MessageVO view(ChatMessageEntity row,Map<Long,String> names){
         return new MessageVO(row.getId(),row.getOrderId(),row.getSenderId(),names.getOrDefault(row.getSenderId(),"用户"),
@@ -35,8 +35,9 @@ public class OrderMessageService {
     @Transactional
     public List<MessageVO> list(UserVO user,long orderId){
         allowed(user,orderId);
-        var page=messages.selectPage(new Page<>(1,100),new LambdaQueryWrapper<ChatMessageEntity>()
-                .eq(ChatMessageEntity::getOrderId,orderId).orderByDesc(ChatMessageEntity::getId));
+        var query=new LambdaQueryWrapper<ChatMessageEntity>().eq(ChatMessageEntity::getOrderId,orderId);
+        if(user.role()==UserRole.WORKER)query.and(q->q.eq(ChatMessageEntity::getSenderId,user.id()).or().eq(ChatMessageEntity::getReceiverId,user.id()));
+        var page=messages.selectPage(new Page<>(1,100,false),query.orderByDesc(ChatMessageEntity::getId));
         var rows=new ArrayList<>(page.getRecords());Collections.reverse(rows);
         var received=rows.stream().filter(row->row.getReceiverId().equals(user.id())&&row.getReadStatus()==0)
                 .map(ChatMessageEntity::getId).toList();
@@ -55,6 +56,7 @@ public class OrderMessageService {
     public MessageVO send(UserVO user,long orderId,MessageRequest input){
         var order=allowed(user,orderId);
         if(user.role()==UserRole.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
+        if(input.expectedWorkerId()!=null&&!input.expectedWorkerId().equals(order.getWorkerId())) throw new BusinessException(ErrorCode.CONFLICT);
         if(order.getWorkerId()==null) throw new BusinessException(ErrorCode.CONFLICT);
         long recipient=user.role()==UserRole.STUDENT?workers.selectById(order.getWorkerId()).getUserId()
                 :students.selectById(order.getStudentId()).getUserId();

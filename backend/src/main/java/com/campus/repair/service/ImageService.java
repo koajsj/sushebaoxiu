@@ -71,9 +71,11 @@ public class ImageService {
         if (!id.matches("[0-9a-f-]{36}")) throw new BusinessException(ErrorCode.NOT_FOUND);
         var image = images.selectById(id);
         if (image == null) throw new BusinessException(ErrorCode.NOT_FOUND);
-        if (!image.getOwnerId().equals(user.id())) {
-            if (image.getOrderId() == null) throw new BusinessException(ErrorCode.NOT_FOUND);
+        if (image.getOrderId() != null) {
+            // Bound files follow current order access, including after the uploader is replaced.
             access.requireView(user, orders.selectById(image.getOrderId()));
+        } else if (!image.getOwnerId().equals(user.id())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         try {
             Path path = directory.resolve(id);

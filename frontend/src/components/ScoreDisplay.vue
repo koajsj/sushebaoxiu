@@ -8,7 +8,7 @@ function animate() {
   cancelAnimationFrame(frame)
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) {displayed.value=props.value;return}
   const from=displayed.value,target=props.value,start=performance.now()
-  const tick=(time:number)=>{const progress=Math.min(1,(time-start)/480);displayed.value=from+(target-from)*(1-Math.pow(1-progress,3));if(progress<1)frame=requestAnimationFrame(tick)}
+  const tick=(time:number)=>{const progress=Math.min(1,(time-start)/260);displayed.value=from+(target-from)*(1-Math.pow(1-progress,3));if(progress<1)frame=requestAnimationFrame(tick)}
   frame=requestAnimationFrame(tick)
 }
 onMounted(()=>{mounted=true;displayed.value=0;animate()})

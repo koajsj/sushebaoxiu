@@ -27,14 +27,16 @@ public class StatisticsService {
     public Map<String,Object> overview(UserVO user) {
         access.requireAdmin(user);
         var start=today().atStartOfDay();
-        long total=statistics.totalCount(),completed=statistics.completedCount();
+        var counts=statistics.overviewCounts(start,start.plusDays(1));
+        long total=number(counts.get("total")),completed=number(counts.get("completed"));
         Double seconds=statistics.averageRepairSeconds();
         var result=new LinkedHashMap<String,Object>();
-        result.put("todayCount",statistics.createdBetween(start,start.plusDays(1)));
-        result.put("activeCount",statistics.activeCount());
+        result.put("todayCount",number(counts.get("today")));
+        result.put("activeCount",number(counts.get("active")));
         result.put("completionRate",total==0?BigDecimal.ZERO:BigDecimal.valueOf(completed*100.0/total).setScale(1,RoundingMode.HALF_UP));
         result.put("averageRepairHours",seconds==null?BigDecimal.ZERO:BigDecimal.valueOf(seconds/3600).setScale(1,RoundingMode.HALF_UP));
         result.put("totalCount",total);
+        result.put("overdueCount",number(counts.get("overdue")));result.put("reworkCount",number(counts.get("rework")));
         return result;
     }
     public List<Map<String,Object>> trend(UserVO user) {

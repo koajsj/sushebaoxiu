@@ -62,3 +62,6 @@ logging:
       max-file-size: 10MB
       max-history: 7
       total-size-cap: 100MB
+
+# SLA defaults are centralized in SlaProperties: LOW 24h/72h, NORMAL 8h/24h, HIGH 2h/8h.
+# Override with APP_SLA_HIGH_RESPONSE=1h etc. Scan interval defaults to 60 seconds.

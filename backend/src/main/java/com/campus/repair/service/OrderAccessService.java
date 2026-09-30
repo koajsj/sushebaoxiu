@@ -45,13 +45,15 @@ public class OrderAccessService {
     }
 
     public void requireStudentOwner(UserVO user, RepairOrderEntity order) {
-        student(user);
-        requireView(user, order);
+        var student = student(user);
+        if (order == null || !student.getId().equals(order.getStudentId()))
+            throw new BusinessException(ErrorCode.NOT_FOUND);
     }
 
     public WorkerEntity requireWorkerOwner(UserVO user, RepairOrderEntity order) {
         var worker = worker(user);
-        requireView(user, order);
+        if (order == null || !worker.getId().equals(order.getWorkerId()))
+            throw new BusinessException(ErrorCode.NOT_FOUND);
         requireAvailable(worker);
         return worker;
     }

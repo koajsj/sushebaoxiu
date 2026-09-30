@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { ElAlert, ElButton, ElMenu, ElMenuItem } from 'element-plus'
 import 'element-plus/theme-chalk/el-alert.css'
@@ -21,6 +21,12 @@ const exiting = ref(false)
 const errorMessage = ref('')
 const names: Record<Role, string> = { student: '学生服务', worker: '维修工作台', admin: '后勤管理' }
 const roleNames: Record<Role, string> = { student: '学生', worker: '维修人员', admin: '管理员' }
+const activeMenu = computed(() => {
+  const root = `/${props.role}`
+  if (route.path === '/student/orders/new') return route.path
+  if (route.path.startsWith(`${root}/orders`)) return props.role === 'admin' ? root : `${root}/orders`
+  return route.path
+})
 
 async function signOut() {
   if (exiting.value) return
@@ -34,18 +40,19 @@ async function signOut() {
 
 <template>
   <div class="workspace" :class="{ 'navigation-collapsed': ui.navigationCollapsed }">
+    <a class="skip-link" href="#workspace-content">跳到主要内容</a>
     <aside id="workspace-navigation" class="workspace-sidebar" aria-label="主导航">
       <RouterLink :to="`/${props.role}`" class="sidebar-brand" aria-label="校园智能报修首页">
         <BrandMark :compact="ui.navigationCollapsed" />
       </RouterLink>
       <p class="sidebar-label">{{ ui.navigationCollapsed ? '导航' : names[props.role] }}</p>
-      <ElMenu class="workspace-menu" :default-active="route.path" router>
+      <ElMenu class="workspace-menu" :default-active="activeMenu" router>
         <ElMenuItem :index="`/${props.role}`">{{ ui.navigationCollapsed ? '首页' : props.role==='admin'?'工单管理':'工作台首页' }}</ElMenuItem>
-        <ElMenuItem v-if="props.role !== 'admin'" :index="`/${props.role}/orders`">{{ props.role==='student'?'我的报修':'我的任务' }}</ElMenuItem>
-        <ElMenuItem v-if="props.role === 'student'" index="/student/orders/new">提交报修</ElMenuItem>
-        <ElMenuItem v-if="props.role === 'admin'" index="/admin/dispatch">智能派单</ElMenuItem>
-        <ElMenuItem v-if="props.role === 'admin'" index="/admin/dashboard">数据驾驶舱</ElMenuItem>
-        <ElMenuItem v-if="props.role === 'admin'" index="/admin/map">校园任务地图</ElMenuItem>
+        <ElMenuItem v-if="props.role !== 'admin'" :index="`/${props.role}/orders`" :title="props.role==='student'?'我的报修':'我的任务'">{{ ui.navigationCollapsed?'工单':props.role==='student'?'我的报修':'我的任务' }}</ElMenuItem>
+        <ElMenuItem v-if="props.role === 'student'" index="/student/orders/new" title="提交报修">{{ ui.navigationCollapsed?'报修':'提交报修' }}</ElMenuItem>
+        <ElMenuItem v-if="props.role === 'admin'" index="/admin/dispatch" title="智能派单">{{ ui.navigationCollapsed?'派单':'智能派单' }}</ElMenuItem>
+        <ElMenuItem v-if="props.role === 'admin'" index="/admin/dashboard" title="数据驾驶舱">{{ ui.navigationCollapsed?'概览':'数据驾驶舱' }}</ElMenuItem>
+        <ElMenuItem v-if="props.role === 'admin'" index="/admin/map" title="校园任务地图">{{ ui.navigationCollapsed?'地图':'校园任务地图' }}</ElMenuItem>
       </ElMenu>
       <p class="sidebar-note">{{ ui.navigationCollapsed ? '校园' : '让每一份校园关怀，都有回应。' }}</p>
     </aside>
@@ -64,7 +71,7 @@ async function signOut() {
           <ElButton class="signout-button" text :loading="exiting" :disabled="exiting || !auth.authenticated" @click="signOut">退出登录</ElButton>
         </div>
       </header>
-      <main class="workspace-content">
+      <main id="workspace-content" class="workspace-content" tabindex="-1">
         <ElAlert v-if="errorMessage" class="logout-error" :title="errorMessage" type="error" :closable="false" show-icon />
         <RouterView v-slot="{ Component, route }">
           <Transition name="page" mode="out-in"><component :is="Component" :key="route.path" /></Transition>

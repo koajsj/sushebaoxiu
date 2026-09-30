@@ -16,4 +16,9 @@ public class DispatchRecordEntity {
     private String recommendationBatch;
     private Boolean confirmed;
     private java.time.LocalDateTime createTime;
+    private Integer roundNo;
+    private String decision;
+    private String method;
+    private String rejectReason;
+    private java.time.LocalDateTime responseTime;
 }

@@ -11,6 +11,27 @@ public interface RepairOrderMapper extends com.baomidou.mybatisplus.core.mapper.
     long countAssignedToday(@org.apache.ibatis.annotations.Param("workerId") long workerId,
             @org.apache.ibatis.annotations.Param("start") java.time.LocalDateTime start);
 
+    @org.apache.ibatis.annotations.Select("""
+        <script>
+        SELECT COUNT(*) AS total,
+          COALESCE(SUM(status IN ('WAIT_AUDIT','WAIT_ASSIGN','ASSIGNED')),0) AS pending,
+          COALESCE(SUM(status IN ('PROCESSING','WAIT_CONFIRM','REWORK_PENDING')),0) AS active,
+          COALESCE(SUM(status IN ('FINISHED','COMMENTED')),0) AS completed,
+          COALESCE(SUM(create_time &gt;= #{start}),0) AS today
+        FROM repair_order
+        <where>
+          <if test="studentId != null">student_id = #{studentId}</if>
+          <if test="workerId != null">worker_id = #{workerId}</if>
+        </where>
+        </script>
+        """)
+    java.util.Map<String,Object> summary(@org.apache.ibatis.annotations.Param("studentId") Long studentId,
+            @org.apache.ibatis.annotations.Param("workerId") Long workerId,
+            @org.apache.ibatis.annotations.Param("start") java.time.LocalDateTime start);
+
     @org.apache.ibatis.annotations.Select("SELECT * FROM repair_order WHERE id = #{id} FOR UPDATE")
     RepairOrderEntity lockById(long id);
+    @org.apache.ibatis.annotations.Select("SELECT id FROM repair_order WHERE id > #{after} AND overdue_type IS NULL AND ((worker_id IS NOT NULL AND accepted_time IS NULL AND status IN ('WAIT_ASSIGN','ASSIGNED') AND response_due_time <= #{now}) OR (status='PROCESSING' AND repair_due_time <= #{now})) ORDER BY id LIMIT 100")
+    java.util.List<Long> overdueCandidates(@org.apache.ibatis.annotations.Param("now") java.time.LocalDateTime now,
+            @org.apache.ibatis.annotations.Param("after") long after);
 }

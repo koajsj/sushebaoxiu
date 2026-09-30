@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
-const server=await createServer({server:{middlewareMode:true},appType:'custom'})
+const server=await createServer({server:{middlewareMode:true,hmr:false},appType:'custom'})
 try {
  const { projectMarkers, validLocation, findMarker, constrainPan }=await server.ssrLoadModule('/src/utils/map.ts')
  assert.equal(validLocation(0,0),true)

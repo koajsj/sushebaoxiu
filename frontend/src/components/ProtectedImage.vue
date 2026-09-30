@@ -14,4 +14,4 @@ watch(() => props.url, async (url) => {
 }, { immediate: true })
 onBeforeUnmount(() => { revision++; release() })
 </script>
-<template><figure class="repair-photo"><img v-if="source" :src="source" :alt="alt || '报修现场图片'" /><figcaption v-else>{{ failed ? '图片暂时无法显示' : '正在加载图片…' }}</figcaption></figure></template>
+<template><figure class="repair-photo"><img v-if="source" :src="source" :alt="alt || '报修现场图片'" decoding="async" loading="lazy" /><figcaption v-else>{{ failed ? '图片暂时无法显示' : '正在加载图片…' }}</figcaption></figure></template>

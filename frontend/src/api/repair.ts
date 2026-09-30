@@ -27,3 +27,5 @@ export async function loadImage(url: string): Promise<Blob> {
   if (!/^\/api\/images\/[0-9a-f-]{36}$/.test(url)) throw new ApiError('图片地址不可用')
   return (await http.get<Blob>(url.slice(4), { responseType: 'blob' })).data
 }
+
+export async function workflowAction(role:Role,id:number,action:string,input:unknown) { await http.put(`/${role}/orders/${id}/${action}`,input) }

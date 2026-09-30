@@ -9,19 +9,18 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface StatisticsMapper {
-    @Select("SELECT COUNT(*) FROM repair_order WHERE create_time >= #{start} AND create_time < #{end}")
-    long createdBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+    @Select("""
+        SELECT COUNT(*) AS total,
+          COALESCE(SUM(create_time >= #{start} AND create_time < #{end}),0) AS today,
+          COALESCE(SUM(status IN ('ASSIGNED','PROCESSING','WAIT_CONFIRM','REWORK_PENDING')),0) AS active,
+          COALESCE(SUM(status IN ('FINISHED','COMMENTED')),0) AS completed,
+          COALESCE(SUM(overdue_type IS NOT NULL),0) AS overdue,
+          COALESCE(SUM(repair_round>1 OR status='REWORK_PENDING'),0) AS rework
+        FROM repair_order
+        """)
+    Map<String,Object> overviewCounts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Select("SELECT COUNT(*) FROM repair_order WHERE status IN ('ASSIGNED','PROCESSING','WAIT_CONFIRM')")
-    long activeCount();
-
-    @Select("SELECT COUNT(*) FROM repair_order")
-    long totalCount();
-
-    @Select("SELECT COUNT(*) FROM repair_order WHERE status IN ('FINISHED','COMMENTED')")
-    long completedCount();
-
-    @Select("SELECT AVG(TIMESTAMPDIFF(SECOND,s.create_time,f.create_time)) FROM order_event s JOIN order_event f ON f.order_id=s.order_id AND f.action='FINISH' WHERE s.action='START' AND f.create_time>=s.create_time")
+    @Select("SELECT AVG(duration_seconds) FROM (SELECT TIMESTAMPDIFF(SECOND,MIN(start_time),MAX(finish_time)) AS duration_seconds FROM repair_record WHERE finish_time IS NOT NULL GROUP BY order_id,round_no) repairs")
     Double averageRepairSeconds();
 
     @Select("SELECT DATE(create_time) AS day,COUNT(*) AS amount FROM repair_order WHERE create_time >= #{start} GROUP BY DATE(create_time) ORDER BY day")

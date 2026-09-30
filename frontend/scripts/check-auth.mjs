@@ -11,7 +11,7 @@ globalThis.localStorage = {
   setItem: (key, value) => storage.set(key, String(value)),
   removeItem: (key) => storage.delete(key),
 }
-const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
+const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
 const backend = process.env.CHECK_BACKEND_URL || 'http://127.0.0.1:8080/api'
 const warnings = []
 const originalWarn = console.warn

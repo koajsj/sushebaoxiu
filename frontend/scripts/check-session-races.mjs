@@ -3,12 +3,14 @@ import { createServer } from 'vite'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
 import { AxiosError } from 'axios'
+import { createSSRApp, h, nextTick } from 'vue'
+import { renderToString } from 'vue/server-renderer'
 
 // Controlled HTTP ordering exercises production state/interceptors, no browser or real sessions.
 const storage = new Map()
 globalThis.localStorage = { getItem: (key) => storage.get(key) ?? null,
   setItem: (key, value) => storage.set(key, String(value)), removeItem: (key) => storage.delete(key) }
-const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' })
+const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
 try {
   const { createAppRouter } = await server.ssrLoadModule('/src/router/index.ts')
   const { useAuthStore } = await server.ssrLoadModule('/src/store/auth.ts')
@@ -19,7 +21,7 @@ try {
   function context() {
     const pinia = createPinia(); setActivePinia(pinia)
     const router = createAppRouter(createMemoryHistory(), pinia)
-    return { auth: useAuthStore(pinia), router }
+    return { pinia, auth: useAuthStore(pinia), router }
   }
   storage.set('campus-repair.token', oldToken)
   let { auth } = context()
@@ -73,4 +75,62 @@ try {
   assert.equal(auth.token, 'newer-student-token', 'Old logout completion must not clear a newer session')
   assert.equal(auth.user.role, 'STUDENT')
   console.log('PASS delayed old-session logout preserves new login')
+
+  // Exercise the actual login handler while asynchronous form validation is still pending.
+  storage.clear()
+  const loginContext = context()
+  loginContext.auth.initialized = true
+  await loginContext.router.push('/login')
+  const { default: Login } = await server.ssrLoadModule('/src/views/LoginView.vue')
+  let loginState
+  await renderToString(createSSRApp({ setup() {
+    loginState = Login.setup({}, { expose() {} })
+    return () => h('div')
+  } }).use(loginContext.pinia).use(loginContext.router))
+  let validated, loginRequests = 0
+  const validation = new Promise((resolve) => { validated = resolve })
+  loginState.formRef.value = { validate: () => validation }
+  loginState.form.username = 'student001'
+  loginState.form.password = 'example'
+  http.defaults.adapter = async (config) => {
+    if (config.url === '/auth/login') loginRequests++
+    return response(config, { token: 'single-login-token', user: user('STUDENT'), role: 'STUDENT', expiresAt: '' })
+  }
+  const firstClick = loginState.submit(), secondClick = loginState.submit()
+  validated(true)
+  await Promise.all([firstClick, secondClick])
+  assert.equal(loginRequests, 1, 'Double click during validation must send only one login request')
+  assert.equal(loginState.loading.value, false, 'Login loading must be released')
+  console.log('PASS login double click during validation sends one request')
+
+  await loginContext.router.push('/student/orders/99/messages')
+  const { default: Chat } = await server.ssrLoadModule('/src/views/OrderChatView.vue')
+  let chatState, sentMessages = 0
+  await renderToString(createSSRApp({ setup() {
+    chatState = Chat.setup({ role: 'student' }, { expose() {} })
+    return () => h('div')
+  } }).use(loginContext.pinia).use(loginContext.router))
+  chatState.detail.value = { order: { id: 99, workerId: 2 } }
+  chatState.draft.value = '发送给原维修人员的草稿'
+  await nextTick()
+  http.defaults.adapter = async (config) => {
+    if (config.url === '/orders/99') return response(config, { order: { id: 99, workerId: 3 } })
+    if (config.method === 'post') { sentMessages++; return response(config, { id: 1 }) }
+    return response(config, [])
+  }
+  await chatState.load()
+  await chatState.send()
+  assert.equal(sentMessages, 0, 'Refresh after reassignment must not silently send an old draft to new staff')
+  assert.ok(chatState.draft.value, 'Recipient change must preserve the draft for review')
+  console.log('PASS refreshed chat recipient change preserves draft and requires review')
+
+  http.defaults.adapter = async (config) => {
+    throw new AxiosError('Forbidden', 'ERR_BAD_REQUEST', config, null, {
+      ...response(config, null), status: 403,
+      data: new Blob([JSON.stringify({ code: 40300, message: '无权访问此图片', data: null })], { type: 'application/json' }),
+    })
+  }
+  await assert.rejects(http.get('/images/example', { responseType: 'blob' }),
+    (error) => error.code === 40300 && error.message === '无权访问此图片')
+  console.log('PASS protected image errors preserve permission message')
 } finally { delete globalThis.localStorage; await server.close() }

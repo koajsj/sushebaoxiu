@@ -1,3 +1,5 @@
+> Phase 1 历史实施记录，非最终版本规范。原始设计见 [Phase1架构](phase1-architecture.md)；最终设计见 [当前架构](architecture.md)。
+
 # 基础工程实施计划
 
 **目标：** 完成本次需求限定的第一阶段工程基础。

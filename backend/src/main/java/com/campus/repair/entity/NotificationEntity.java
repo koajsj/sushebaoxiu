@@ -9,4 +9,5 @@ public class NotificationEntity {
     private String content;
     private Integer readStatus;
     private java.time.LocalDateTime createTime;
+    private String idempotencyKey;
 }

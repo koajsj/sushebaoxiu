@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getOrders, getSummary } from '../api/repair'
 import { useAuthStore } from '../store/auth'
-import type { RepairOrder, Summary } from '../types/repair'
+import { orderStatusLabel, type RepairOrder, type Summary } from '../types/repair'
 import OrderCard from '../components/OrderCard.vue'
 const props = defineProps<{role:'student'|'worker'}>()
 const auth=useAuthStore()
 const summary=ref<Summary|null>(null), orders=ref<RepairOrder[]>([]), loading=ref(true), error=ref('')
+const ongoing=computed(()=>orders.value.find(order=>!['FINISHED','COMMENTED'].includes(order.status)))
+let revision=0
 async function load() {
-  loading.value=true; error.value=''
-  try { const [counts, page]=await Promise.all([getSummary(props.role),getOrders(props.role,{size:4})]); summary.value=counts; orders.value=page.records }
-  catch(e){ error.value=e instanceof Error?e.message:'加载失败' }
-  finally { loading.value=false }
+  const current=++revision;loading.value=true; error.value=''
+  try { const [counts, page]=await Promise.all([getSummary(props.role),getOrders(props.role,{size:4})]);if(current!==revision)return;summary.value=counts;orders.value=page.records }
+  catch(e){if(current===revision){summary.value=null;orders.value=[];error.value=e instanceof Error?e.message:'加载失败'}}
+  finally {if(current===revision)loading.value=false}
 }
 onMounted(load)
+onBeforeUnmount(()=>{revision++})
 </script>
 <template><section class="business-page home-page">
   <header class="page-heading"><div><p class="eyebrow">{{ role==='student'?'CAMPUS CARE':'CAMPUS SERVICE' }} · {{ auth.user?.realName }}</p><h1>{{ role==='student'?'今天，让校园生活更顺畅。':'维修工作台' }}</h1><p>{{ role==='student'?'从提交到完成，每一步都清晰可见。':'每一项维修，都让校园更好一点。' }}</p></div>
@@ -27,6 +30,7 @@ onMounted(load)
     <article class="summary-widget"><span>{{ role==='student'?'处理中 / 待确认':'维修中 / 待确认' }}</span><strong>{{ summary?.active ?? '—' }}</strong><p>进展正在发生</p></article>
     <article class="summary-widget"><span>已确认完成</span><strong>{{ summary?.completed ?? '—' }}</strong><p>校园服务的每一次落实</p></article>
   </div>
+  <RouterLink v-if="ongoing&&!loading" class="current-repair" :to="`/${role}/orders/${ongoing.id}`"><div><span>最近订单进展 · #{{ ongoing.id }}</span><strong>{{ ongoing.title }}</strong></div><span class="status-pill" :class="`status-${ongoing.status.toLowerCase()}`">{{ orderStatusLabel(ongoing) }}</span><span class="current-repair-link">查看进度 →</span></RouterLink>
   <section class="recent-section"><div class="section-heading"><h2>{{ role==='student'?'最近报修':'最近任务' }}</h2><RouterLink class="text-button" :to="`/${role}/orders`">查看全部 →</RouterLink></div>
     <p v-if="loading" class="empty-state" role="status">正在加载订单…</p>
     <div v-else-if="orders.length" class="order-grid"><OrderCard v-for="order in orders" :key="order.id" :order="order" :role="role" /></div>

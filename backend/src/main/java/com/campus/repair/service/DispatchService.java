@@ -21,12 +21,11 @@ public class DispatchService {
     private final RepairTypeMapper types;
     private final WorkerMapper workers;
     private final DispatchRecordMapper records;
-    private final OrderEventMapper events;
     private final OrderAccessService access;
     private final DispatchDataService data;
     private final DispatchAlgorithm algorithm;
-    private final NotificationService notifications;
     private final Clock clock;
+    private final OrderWorkflowService workflow;
 
     private LocalDateTime now() {
         // DATETIME(0) rounds fractions; truncate explicitly so a fresh snapshot is never in the future.
@@ -48,12 +47,12 @@ public class DispatchService {
                 coordinate(building.getLongitude()), coordinate(building.getLatitude()),
                 coordinate(worker.getLongitude()), coordinate(worker.getLatitude()), load, worker.getScore().doubleValue()));
     }
-    private DispatchRecordEntity save(long orderId, long workerId, DispatchAlgorithm.Scores scores, String batch, boolean confirmed) {
+    private DispatchRecordEntity save(long orderId, long workerId, DispatchAlgorithm.Scores scores, String batch, boolean confirmed, int round) {
         var row = new DispatchRecordEntity();
         row.setOrderId(orderId); row.setWorkerId(workerId); row.setSkillScore(scores.skillScore());
         row.setDistanceScore(scores.distanceScore()); row.setLoadScore(scores.loadScore()); row.setRatingScore(scores.ratingScore());
         row.setTotalScore(scores.totalScore()); row.setReason(scores.reason()); row.setRecommendationBatch(batch);
-        row.setConfirmed(confirmed); row.setCreateTime(now()); records.insert(row);
+        row.setRoundNo(round);row.setConfirmed(confirmed); row.setCreateTime(now()); row.setMethod("SMART");row.setDecision(confirmed?"ASSIGNED":"RECOMMENDED");records.insert(row);
         return row;
     }
     private WorkerRecommendationVO view(DispatchRecordEntity row, WorkerEntity worker, String name, long load, Double distance) {
@@ -79,7 +78,7 @@ public class DispatchService {
             var scores = algorithm.score(new DispatchAlgorithm.Input(type.getName(), type.getDescription(), worker.getSkillType(),
                     coordinate(building.getLongitude()), coordinate(building.getLatitude()),
                     coordinate(worker.getLongitude()), coordinate(worker.getLatitude()), load, worker.getScore().doubleValue()));
-            var row = save(orderId, worker.getId(), scores, batch, false);
+            var row = save(orderId, worker.getId(), scores, batch, false, order.getDispatchRound()+1);
             result.add(view(row, worker, candidate.name(), load, scores.distanceKm()));
         }
         result.sort(Comparator.comparing(WorkerRecommendationVO::totalScore).reversed()
@@ -93,7 +92,8 @@ public class DispatchService {
         access.requireAdmin(user);
         var order = eligibleOrder(input.orderId());
         var snapshot = records.selectById(input.recommendationId());
-        if (snapshot == null || !snapshot.getOrderId().equals(input.orderId()) || !snapshot.getWorkerId().equals(input.workerId()))
+        if (snapshot == null || !snapshot.getOrderId().equals(input.orderId()) || !snapshot.getWorkerId().equals(input.workerId())
+                || !Objects.equals(snapshot.getRoundNo(),order.getDispatchRound()+1))
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         // Same lock order as manual assignment: order, then worker. Serializes active load changes.
         var worker = workers.lockById(input.workerId());
@@ -110,12 +110,9 @@ public class DispatchService {
                 || snapshot.getLoadScore().compareTo(fresh.loadScore()) != 0
                 || snapshot.getRatingScore().compareTo(fresh.ratingScore()) != 0)
             throw new BusinessException(ErrorCode.RECOMMENDATION_STALE);
-        var confirmed = save(order.getId(), worker.getId(), fresh, snapshot.getRecommendationBatch(), true);
+        var confirmed = save(order.getId(), worker.getId(), fresh, snapshot.getRecommendationBatch(), true, order.getDispatchRound()+1);
         order.setWorkerId(worker.getId()); order.setStatus(OrderStatus.ASSIGNED.name()); order.setUpdateTime(currentTime);
-        orders.updateById(order);
-        var event = new OrderEventEntity(); event.setOrderId(order.getId()); event.setActorId(user.id());
-        event.setAction("ASSIGN"); event.setStatus(order.getStatus()); event.setCreateTime(currentTime); events.insert(event);
-        notifications.onOrderEvent(order,"ASSIGN");
+        workflow.assigned(order,user,confirmed);
         return view(confirmed, worker, data.name(worker), load, fresh.distanceKm());
     }
 }

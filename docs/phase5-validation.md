@@ -1,3 +1,5 @@
+> 阶段历史验证记录。部分HTTP脚本已在最终整理中合并；当前有效入口、测试边界见 [Phase6验证](phase6-validation.md) 和README。
+
 # Phase5 验证记录（2026-09-30）
 
 本次沿用现有 Java17、Maven Wrapper、Node/npm、MySQL8 和已安装前端依赖；未安装新工具或新增项目依赖。遵照用户要求，命令与测试采用约12秒上限，未运行全量历史套件，也未使用Computer Use或GUI自动化。

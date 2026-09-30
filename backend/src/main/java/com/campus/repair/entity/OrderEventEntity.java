@@ -10,4 +10,7 @@ public class OrderEventEntity {
     private String action;
     private String status;
     private java.time.LocalDateTime createTime;
+    private String content;
+    private Integer roundNo;
+    private Long workerId;
 }

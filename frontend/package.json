@@ -14,9 +14,8 @@
     "check:render": "node scripts/check-render.mjs",
     "check:auth": "node scripts/check-auth.mjs",
     "check:session": "node scripts/check-session-races.mjs",
-    "check:repair": "node scripts/check-repair.mjs",
     "check:map": "node scripts/check-map.mjs",
-    "check:dispatch": "node scripts/check-dispatch.mjs"
+    "check:core": "node scripts/check-core.mjs"
   },
   "dependencies": {
     "axios": "1.20.0",

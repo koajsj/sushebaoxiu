@@ -10,46 +10,94 @@ import com.campus.repair.security.UserRole;
 import com.campus.repair.vo.UserVO;
 import java.time.*;
 import java.util.*;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @lombok.RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class NotificationService {
     private final NotificationMapper notifications;
     private final StudentMapper students;
     private final WorkerMapper workers;
     private final UserMapper users;
     private final Clock clock;
+    private final ApplicationEventPublisher publisher;
     private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
 
-    /** Called inside the order transaction so state and its notification commit together. */
-    public void onOrderEvent(RepairOrderEntity order,String action) {
+    /** Only queue immutable events here. The database write runs after the order commits. */
+    public void publish(RepairOrderEntity order,OrderEventEntity event) {
+        try {
+            onOrderEvent(order,event);
+            onWorkflowEvent(order,event);
+        } catch (RuntimeException failure) {
+            log.error("Notification preparation failed eventType={} businessId={} reason={}",
+                    event.getAction(),order.getId(),failure.getClass().getSimpleName());
+        }
+    }
+    private void queue(OrderEventEntity event,long userId,String title,String content) {
+        String key=event.getAction()+":"+event.getOrderId()+":"+event.getRoundNo()+":"+event.getId()+":"+userId;
+        publisher.publishEvent(new BusinessNotificationEvent(userId,event.getAction(),event.getOrderId(),title,content.strip(),key));
+    }
+    private void onOrderEvent(RepairOrderEntity order,OrderEventEntity event) {
+        String action=event.getAction();
         if(!Set.of("SUBMIT","AUDIT","ASSIGN","FINISH").contains(action)) return;
         var student=students.selectById(order.getStudentId());
         if(student==null) throw new BusinessException(ErrorCode.PROFILE_REQUIRED);
         String ref="工单 #"+order.getId();
         switch(action) {
             case "SUBMIT" -> {
-                add(student.getUserId(),"报修提交成功",ref+" 已提交，等待审核。 ");
+                queue(event,student.getUserId(),"报修提交成功",ref+" 已提交，等待审核。 ");
                 users.selectList(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getRole,UserRole.ADMIN).eq(UserEntity::getStatus,1))
-                        .forEach(admin->add(admin.getId(),"新报修待审核",ref+" 已提交，请及时审核。"));
+                        .forEach(admin->queue(event,admin.getId(),"新报修待审核",ref+" 已提交，请及时审核。"));
             }
-            case "AUDIT" -> add(student.getUserId(),"报修审核完成",ref+" 已通过审核，等待派单。");
+            case "AUDIT" -> queue(event,student.getUserId(),"报修审核完成",ref+" 已通过审核，等待派单。");
             case "ASSIGN" -> {
                 if(order.getWorkerId()==null) throw new BusinessException(ErrorCode.INVALID_REFERENCE);
                 var worker=workers.selectById(order.getWorkerId());
                 if(worker==null) throw new BusinessException(ErrorCode.WORKER_UNAVAILABLE);
-                add(student.getUserId(),"维修人员已安排",ref+" 已派单。");
-                add(worker.getUserId(),"收到新维修任务",ref+" 已分配给你，请查看任务详情。");
+                queue(event,student.getUserId(),"维修人员已安排",ref+" 已派单。");
+                queue(event,worker.getUserId(),"收到新维修任务",ref+" 已分配给你，请查看任务详情。");
             }
-            case "FINISH" -> add(student.getUserId(),"维修已完成",ref+" 已提交维修结果，请确认。");
+            case "FINISH" -> queue(event,student.getUserId(),"维修已完成",ref+" 已提交维修结果，请确认。");
             default -> { }
         }
     }
-    private void add(long userId,String title,String content){
-        var row=new NotificationEntity();row.setUserId(userId);row.setTitle(title);row.setContent(content.strip());
-        row.setReadStatus(0);row.setCreateTime(now());notifications.insert(row);
+    private void onWorkflowEvent(RepairOrderEntity order,OrderEventEntity event) {
+        String action=event.getAction();String reason=event.getContent();
+        if(!Set.of("AUDIT_REJECT","RESUBMIT","WORKER_REJECT","SLA_RESPONSE","SLA_REPAIR","ACCEPTANCE_FAIL",
+                "REWORK_ORIGINAL","REWORK_REDISPATCH","APPOINTMENT_PROPOSE","APPOINTMENT_ACCEPT","APPOINTMENT_REJECT").contains(action))return;
+        var student=students.selectById(order.getStudentId());
+        var worker=event.getWorkerId()==null?null:workers.selectById(event.getWorkerId());
+        String title=switch(action) {
+            case "AUDIT_REJECT" -> "报修审核驳回";case "RESUBMIT" -> "报修重新提交";case "WORKER_REJECT" -> "维修人员拒单";
+            case "SLA_RESPONSE" -> "工单接单超时";case "SLA_REPAIR" -> "工单维修超时";case "ACCEPTANCE_FAIL" -> "学生验收未通过";
+            case "REWORK_ORIGINAL" -> "原维修人员返工";case "REWORK_REDISPATCH" -> "返工等待重新派单";
+            case "APPOINTMENT_PROPOSE" -> "维修时间待确认";case "APPOINTMENT_ACCEPT" -> "学生已接受预约";
+            default -> "学生拒绝预约";
+        };
+        String content="工单 #"+order.getId()+" · "+(reason==null?"":reason);
+        if(content.codePointCount(0,content.length())>500)content=content.substring(0,content.offsetByCodePoints(0,500));
+        if(Set.of("AUDIT_REJECT","RESUBMIT","REWORK_ORIGINAL","REWORK_REDISPATCH","APPOINTMENT_PROPOSE").contains(action))queue(event,student.getUserId(),title,content);
+        if(worker!=null&&Set.of("ACCEPTANCE_FAIL","REWORK_ORIGINAL","APPOINTMENT_ACCEPT","APPOINTMENT_REJECT").contains(action))queue(event,worker.getUserId(),title,content);
+        if(Set.of("RESUBMIT","WORKER_REJECT","SLA_RESPONSE","SLA_REPAIR","ACCEPTANCE_FAIL","REWORK_REDISPATCH").contains(action)) {
+            String text=content;
+            users.selectList(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getRole,UserRole.ADMIN).eq(UserEntity::getStatus,1))
+                    .forEach(admin->queue(event,admin.getId(),title,text));
+        }
+    }
+    @Transactional(propagation=Propagation.REQUIRES_NEW)
+    public void write(BusinessNotificationEvent event){
+        var row=new NotificationEntity();row.setUserId(event.targetUserId());row.setTitle(event.title());row.setContent(event.content());
+        row.setIdempotencyKey(event.idempotencyKey());row.setReadStatus(0);row.setCreateTime(now());
+        try {
+            notifications.insert(row);
+        } catch (DuplicateKeyException alreadyDelivered) {
+            // The unique event key wins even if the same event is delivered concurrently.
+        }
     }
     @Transactional(readOnly=true)
     public Map<String,Object> list(UserVO user){
