@@ -1,99 +1,70 @@
 # 校园智能报修管理系统
 
-基于 Vue 与 Spring Boot 的本科毕业设计。当前完成 Phase 1～6：三角色认证、报修闭环、可解释派单、校园坐标地图、真实数据驾驶舱、工单沟通、站内通知及最终审查整理；现已补齐驳回重提、拒单重派、超时提醒、验收返工和维修预约。
+基于 Vue 3 和 Spring Boot 3 的本科毕业设计项目。学生提交报修后，管理员审核并确认人工或智能派单，维修人员处理工单，学生验收和评价。系统还提供预约、驳回重提、拒单重派、多轮返工、工单沟通、通知、数据驾驶舱和校园坐标地图。
 
-学生提交 → 管理员审核 → 推荐维修人员并确认派单 → 维修处理与工单沟通 → 学生确认与评价 → 数据汇总。保留人工派单，不增加AI、实时定位或WebSocket。
+## 在这台电脑上启动
 
-## 技术栈与结构
-
-后端：Java 17、Spring Boot 3.5.16、Spring Security、MyBatis Plus 3.5.17、MySQL 8、Maven Wrapper、Lombok、Validation。前端：Vue 3.5.43、Vite 8.3.1、TypeScript、Element Plus、Pinia、Vue Router、Axios。图表与地图使用本地SVG/CSS，不需要地图密钥或额外SDK。本轮没有安装依赖。
-
-```text
-backend/
-  src/main/java/com/campus/repair/
-    common/      Result、分页响应、错误码与异常处理
-    config/      数据库、分页、CORS和Security配置
-    controller/  HTTP入口
-    service/     业务、数据归属、图片、统计、沟通与通知
-    mapper/      数据访问与必要行锁/聚合
-    entity/      持久化模型
-    dto/ vo/     参数校验与安全响应
-    security/    JWT、认证服务、Token过滤器
-    algorithm/   独立确定性派单评分模型
-  src/test/      精简核心单元测试
-  scripts/       核心HTTP验收与可选专项检查
-frontend/
-  src/
-    api/ components/ layouts/ router/ store/
-    views/ utils/ types/ assets/
-  scripts/       SSR、会话竞态、地图与核心HTTP检查
-sql/             结构迁移与开发数据
-docs/            架构、API、数据库、答辩与验证资料
-```
-
-Controller不编写业务或算法逻辑；Service承担权限归属、状态转换和事务；Mapper负责数据库。前端复用LayoutShell、OrderCard、OrderTimeline、MapPanel、ScoreDisplay和通知/图表组件。
-
-## 已完成功能
-
-- 学生：iOS Widget风格首页、五步报修、私有图片上传预览、本人订单分页/筛选、进度时间线、确认与评价。
-- 维修人员：工作台、本人任务、接单/开始/记录/完成，以及工单文字沟通。
-- 管理员：工单审核、人工派单、四因素可解释推荐、校园地图、Dashboard与沟通记录查看。
-- 共用能力：BCrypt登录、JWT与数据库角色校验、刷新恢复、退出撤销、通知及已读、统一异常/参数校验。
-- Apple风格：系统字体、浅色背景、蓝色强调、统一圆角与轻阴影、响应式导航、键盘焦点与减少动画支持。
-
-## 数据库与状态
-
-共13张表，见 [数据库说明](docs/database.md) 和 [ER图](docs/architecture.md)。流程增强扩展四张现有表，迁移为 `sql/business-enhancements.sql`；通知解耦迁移为 `sql/notification-after-commit.sql`。最终审查未改数据库结构。保留JWT、角色模型、派单算法与正常主流程，新增REJECTED、REWORK_PENDING两个异常状态。
-
-```text
-WAIT_AUDIT → WAIT_ASSIGN → ASSIGNED → PROCESSING
-→ WAIT_CONFIRM → FINISHED → COMMENTED
-```
-
-人工指定人员后仍为WAIT_ASSIGN，维修员接单进入ASSIGNED；智能派单由管理员确认后直接进入ASSIGNED，但新派单均须维修员明确接受（accepted_time）后才可开始；迁移保留旧订单已接受语义。每次状态操作由后端校验，在事务中锁定订单；评价每单唯一，计算人员均分时保留人员行锁。CREATED仅保留枚举，无草稿接口。
-
-技能40%、距离30%、当前负载20%、历史评价10%。真实输入确定性计算，保存每次推荐快照，确认前复核且10分钟有效。地图使用静态WGS84坐标，支持缩放、平移、重叠标记展开和点击详情；开发坐标明确为示例。
-
-## 最后一轮流程增强
-
-- 审核驳回填写原因；学生编辑原订单后重提，保留ID和事件。
-- 未接受的任务可拒单，释放负责人员；再次智能/人工派单保留每轮历史。
-- LOW/NORMAL/HIGH的响应/维修SLA集中配置；每分钟检查一次，通知幂等。
-- 验收失败交管理员安排原人员返工或重新派单；维修记录按轮次保存。
-- 接单后预约上门时间，学生接受或说明调整原因；预约不阻塞维修。
-
-部署前先备份、停止旧后端，再执行新增迁移、`sql/notification-after-commit.sql` 及派单历史字段的UPDATE授权。详见 [本轮实现与验证](docs/business-enhancements.md)。展示库只迁移，测试数据仅写隔离库。
-
-## 启动
-
-### 当前电脑
-
-- 前端：<http://127.0.0.1:5173/login>
-- 后端健康：<http://127.0.0.1:8080/api/health>
-- MySQL 8私有演示实例：127.0.0.1:13306，数据库campus_repair。
-
-在项目根目录分别启动数据库、后端，前端另开终端：
+这台电脑已有私有 MySQL 8 配置和 `.runtime/` 启动脚本。**以下命令均从项目根目录开始**；打开两个终端，分别运行：
 
 ```bash
-.runtime/start-mysql.sh
-.runtime/start-backend.sh
+# 终端 1：先启动 MySQL，再以前台方式启动后端
+./.runtime/start-mysql.sh
+./.runtime/start-backend.sh
 ```
 
 ```bash
+# 终端 2：启动前端
 cd frontend
 npm run dev
 ```
 
-`.runtime/`只用于当前电脑，含私有配置，不提交、不分享。修改后端代码后先停止旧后端，再运行 `cd backend && ./mvnw -o -DskipTests package`；不要在运行的jar文件上覆盖构建。
+打开 <http://127.0.0.1:5173/login>。访问 <http://127.0.0.1:8080/api/health> 检查后端与数据库；响应中的 `application` 和 `database` 均应为 `UP`。后端占用当前终端，按 `Ctrl+C` 停止；前端同理。端口已被占用时，先检查是否已有服务在运行，不要重复启动。
 
-### 其他电脑
+本机脚本依赖**已构建的** `backend/target/campus-repair-0.0.1-SNAPSHOT.jar`。首次启动或修改后端源码后，先停止旧后端，再从项目根目录执行：
 
-需要已有Java 17、Node 20.19+或22.12+、MySQL 8。使用Maven Wrapper，无需全局安装Maven。
+```bash
+cd backend
+./mvnw -DskipTests package
+cd ..
+./.runtime/start-backend.sh
+```
 
-1. 按 [数据库说明](docs/database.md) 初始化结构、可选开发数据和最小权限账号。
-2. 复制backend/.env.example为backend/.env，填写连接与随机JWT_SECRET。运行 `openssl rand -base64 32` 生成密钥；真实密钥不要写入源码。
-3. 确认 `java -version` 为17且JAVA_HOME正确。macOS可用 `export JAVA_HOME=$(/usr/libexec/java_home -v 17)`；其他系统设置当地JDK目录。
-4. 启动后端：
+`.runtime/` 包含本机路径和私有配置，已被 Git 忽略；其他电脑请使用下面的通用步骤。
+
+## 在新电脑上从零启动
+
+需要 **Java 17、MySQL 8、Node.js 20.19+（20 系列）或 22.12+**，以及 npm。项目自带 Maven Wrapper，**无需单独安装 Maven**。以下命令适用于 macOS/Linux 的终端；先进入项目根目录。可以用 `java -version`、`node -v`、`mysql --version` 检查已有环境。
+
+### 1. 启动 MySQL 并初始化数据库
+
+先启动你电脑上的 MySQL 8 服务。新库按下面顺序执行结构脚本；最后三个 `dev-*` 脚本只用于**本地演示**，提供测试账号、人员档案和示例坐标。已有数据的数据库升级前请先备份，并参照 [数据库迁移说明](docs/database.md)。
+
+```bash
+mysql -u root -p < sql/init.sql
+mysql -u root -p < sql/phase3.sql
+mysql -u root -p < sql/phase4.sql
+mysql -u root -p < sql/phase5.sql
+mysql -u root -p < sql/business-enhancements.sql
+mysql -u root -p < sql/notification-after-commit.sql
+
+# 仅本地演示环境执行
+mysql -u root -p < sql/dev-users.sql
+mysql -u root -p < sql/dev-business.sql
+mysql -u root -p < sql/dev-dispatch.sql
+```
+
+每条命令会单独提示输入 MySQL 管理员密码。若 MySQL 不在默认端口，在**每条命令**的 `mysql` 后加入 `-h 127.0.0.1 -P 实际端口`。脚本会创建 `campus_repair`；应用不会自动建表。应用数据库账号可按 [最小权限示例](docs/database.md#最小应用权限) 创建。
+
+### 2. 配置后端
+
+```bash
+cp backend/.env.example backend/.env
+openssl rand -base64 32
+```
+
+编辑 `backend/.env`：将 `DB_HOST`、`DB_PORT`、`DB_USERNAME`、`DB_PASSWORD` 改为实际 MySQL 连接信息，并把上一步生成的随机值填入 `JWT_SECRET`。`DB_NAME` 保持 `campus_repair`，除非你明确修改了数据库名。`.env` 是本机私有文件，不要提交或分享。后端不会自动读取 `.env`，启动命令会先将其导出为环境变量。
+
+### 3. 启动后端（终端 1）
 
 ```bash
 cd backend
@@ -103,7 +74,9 @@ set +a
 ./mvnw spring-boot:run
 ```
 
-5. 首次获取前端依赖再启动：
+首次运行 Maven Wrapper 可能下载项目已有依赖。启动后访问 <http://127.0.0.1:8080/api/health>；如果数据库连接失败，后端会直接启动失败。macOS 上如有多个 JDK，可在启动前运行 `export JAVA_HOME=$(/usr/libexec/java_home -v 17)`。
+
+### 4. 启动前端（终端 2）
 
 ```bash
 cd frontend
@@ -111,71 +84,57 @@ npm ci
 npm run dev
 ```
 
-`.env`需要导出，Spring不会自动读取该文件。前端默认代理8080；更换端口时用frontend/.env中的BACKEND_PROXY_TARGET。VITE_变量不可存放密钥。
+打开 <http://127.0.0.1:5173/login> 登录。`npm ci` 只需首次安装依赖或锁文件变化后运行；以后直接 `npm run dev`。前端开发服务器默认把 `/api` 代理到 `127.0.0.1:8080`；后端端口变更时，复制 `frontend/.env.example` 为 `frontend/.env` 并修改 `BACKEND_PROXY_TARGET`。不要把密钥写入任何 `VITE_` 变量。
 
-默认图片在backend/uploads，可用UPLOAD_DIRECTORY指定持久目录。日志滚动保留7天/总量100MB，错误响应隐藏内部堆栈。交付时备份数据库和图片目录，排除`.runtime/`、`.env`、日志、node_modules及个人数据。
+### 本地演示账号
 
-## 开发账号
+执行上述三个 `dev-*` 脚本后可使用以下账号。密码仅用于本地演示，数据库中存储的是 BCrypt 哈希；不要在正式环境运行开发数据脚本。
 
 | 角色 | 账号 | 密码 |
 | --- | --- | --- |
-| 学生 | student001 | 123456 |
-| 维修人员 | worker001 | 123456 |
-| 管理员 | admin001 | 123456 |
-| 电工示例人员 | worker002 | 123456 |
-| 水暖示例人员 | worker003 | 123456 |
+| 学生 | `student001` | `123456` |
+| 维修人员 | `worker001` | `123456` |
+| 管理员 | `admin001` | `123456` |
+| 其他示例维修人员 | `worker002`、`worker003` | `123456`（新库默认值） |
 
-仅供本地演示；密码以BCrypt哈希保存。新增示例人员继承worker001当前密码。档案缺失返回友好错误，档案维护UI不在现有范围。
+## 常见启动问题
 
-## 必要验证与维护
+| 现象 | 检查方法 |
+| --- | --- |
+| 后端提示数据库连接失败 | 先确认 MySQL 正在运行，再核对 `.env` 中的地址、端口、账号、密码及数据库名；应用启动时会验证连接。 |
+| 后端提示缺少 `DB_PASSWORD` 或 `JWT_SECRET` | 确认已填写 `backend/.env`，并在**同一个终端**执行 `source .env` 后启动。 |
+| `./mvnw` 使用了错误的 Java 版本 | 运行 `java -version`；macOS 可设置 `JAVA_HOME` 指向 Java 17。 |
+| 页面可打开，但请求 `/api` 失败 | 先访问后端 `/api/health`，再检查前端代理目标是否指向后端实际端口。 |
+| 运行 `npm run dev` 提示找不到 `vite` | 在 `frontend/` 执行一次 `npm ci`，再启动前端。 |
+| 5173 或 8080 端口被占用 | 检查是否已有前端或后端进程；结束旧进程后再启动。 |
+| 能登录，但部分业务页面无数据 | 确认结构脚本和三个本地演示数据脚本已按顺序执行。 |
 
-最新一轮执行后端离线构建、图片权限与通知的3项针对性单元验证、前端生产构建、19路由SSR、7项会话/交互/错误回归及地图逻辑检查，并在隔离库验证真实流程与前端API闭环。结果见 [最终审查记录](docs/final-review.md)；[Phase6验证记录](docs/phase6-validation.md)保留为此前证据。没有执行全量历史专项套件或GUI自动化，SSR不能替代人工浏览器视觉/交互/控制台检查。
+## 项目结构与技术栈
 
-短验证入口：
-
-```bash
-# 先停止运行中的后端，再构建；已有缓存时可用-o离线
-cd backend
-./mvnw -o -Dtest=ImageServiceTest,NotificationServiceTest test
-./mvnw -o -DskipTests package
+```text
+backend/   Spring Boot API、认证授权、业务服务、MyBatis Plus、Maven Wrapper
+frontend/  Vue 页面、路由、Pinia 状态、接口封装、公共组件
+sql/       数据库初始化、增量迁移和本地演示数据
+docs/      架构、API、数据库、流程与答辩资料
 ```
 
-```bash
-cd frontend
-npm run build
-npm run check:render
-npm run check:session
-npm run check:map
-```
+后端使用 Java 17、Spring Boot 3.5.16、Spring Security、MyBatis Plus 3.5.17、MySQL 8、Validation 和 Lombok；前端使用 Vue 3、Vite、TypeScript、Element Plus、Pinia、Vue Router 和 Axios。图表及地图由本地 SVG/CSS 绘制，不需要地图密钥。后端按 `controller → service → mapper` 分层，派单评分位于独立 `algorithm` 模块。
 
-本机隔离库验收在18085，数据库campus_repair_phase5_check_20260930；脚本会保存验收工单和图片，禁止指向展示/正式库。启动该隔离后端后顺序执行，避免共享账号退出撤销相互干扰。超时专项验收需仅在隔离实例设置 `APP_SLA_SCAN_DELAY_MS=1000`，完成后恢复默认60000：
+学生只能访问自己的工单，维修人员只能处理当前分配给自己的任务，管理员负责审核和派单。JWT 用于身份认证，订单状态由后端控制。通知在核心事务提交后独立写入；写入失败会记录日志，不回滚已完成的业务。
 
-```bash
-.runtime/start-phase5-check.sh
-python3 backend/scripts/check_enhancements.py
-npm --prefix frontend run check:core
-```
+## 功能与资料
 
-验收脚本使用现有Python标准库及前端依赖，无新增测试包。历史认证/越权并发/推荐失效专项脚本保留供对应代码发生变化时使用，不纳入默认执行。移除了重复的前端阶段HTTP脚本，合并为check:core；测试边界见 [维护策略](docs/phase6-validation.md)。
+- 学生：五步报修、私有图片、我的工单、事件时间线、驳回重提、预约确认、验收返工、评价。
+- 维修人员：工作台、接单或拒单、预约、维修记录、返工处理、工单沟通。
+- 管理员：审核、人工或可解释智能派单、重派、数据驾驶舱、校园坐标地图、沟通记录查看。
+- 共用：登录与三角色权限、站内通知、超时扫描、统一错误和参数校验。
 
-## 交付资料
+智能派单按技能 40%、距离 30%、当前负载 20%、历史评价 10% 计算，管理员确认后生效。地图使用静态坐标，演示坐标不代表真实学校位置。
 
-- [当前系统架构、功能结构、ER、核心流程与创新点](docs/architecture.md)
-- [API参考](docs/api-reference.md)
-- [数据库与迁移、最小权限、备份](docs/database.md)
-- [答辩展示流程与人工检查清单](docs/defense-guide.md)
-- [最新最终审查与验证结果](docs/final-review.md)
-- [此前Phase6审查及验证结果](docs/phase6-validation.md)
+详细资料：[系统架构与流程](docs/architecture.md) · [API](docs/api-reference.md) · [数据库和迁移](docs/database.md) · [答辩演示](docs/defense-guide.md) · [最终审查与验证](docs/final-review.md)。
 
-Phase1～5设计与验证文档保留为历史记录，最终行为以当前源码和上述交付资料为准。
+## 构建与限制
 
-## 当前限制
+需要构建时，分别在 `backend/` 运行 `./mvnw -DskipTests package`，在 `frontend/` 运行 `npm run build`。最新的针对性验证和实际覆盖范围见 [最终审查记录](docs/final-review.md)；不要将服务端渲染检查当作浏览器视觉验收。
 
-- 沟通与通知手动刷新，无实时推送；消息最多展示最近100条，通知最近50条。
-- 地图是静态校园坐标图，不提供在线瓦片、实时GPS或路线导航；演示坐标需替换为真实校园坐标。
-- 每张工单/每条维修记录支持一张可选图片。未绑定图片没有自动清理任务。
-- 未实现注册、密码重置、档案维护、取消、AI、预测模型、独立聊天、App或小程序。
-- 通知在AFTER_COMMIT后独立写入，失败记录日志但无持久重试；进程在提交与通知落库之间退出时可能漏通知。
-- 没有提供现成生产部署配置；需要人工完成真实校园数据、HTTPS与环境配置及浏览器验收。
-
-后续只补充交付前人工验收、真实坐标和论文材料，不增加未规划功能。
+当前沟通和通知采用手动刷新；地图无实时定位或路线导航；每张工单和维修记录各支持一张可选图片。通知写入失败没有持久重试队列。生产部署还需要真实校园坐标、HTTPS、独立环境配置、数据库与图片目录备份，以及人工浏览器验收。
