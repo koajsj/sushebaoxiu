@@ -11,6 +11,7 @@ import com.campus.repair.security.UserRole;
 import com.campus.repair.vo.UserVO;
 import java.math.BigDecimal;
 import java.time.*;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -23,16 +24,18 @@ class DispatchServiceTest {
     private final DispatchRecordMapper records=mock(DispatchRecordMapper.class);
     private final OrderAccessService access=mock(OrderAccessService.class);
     private final DispatchDataService data=mock(DispatchDataService.class);
+    private final DispatchSnapshotService snapshots=mock(DispatchSnapshotService.class);
     private final OrderWorkflowService workflow=mock(OrderWorkflowService.class);
     private final Clock clock=mock(Clock.class);
     private final AtomicReference<Instant> time=new AtomicReference<>(Instant.parse("2026-09-30T00:00:00Z"));
     private final DispatchAlgorithm algorithm=new DispatchAlgorithm();
-    private final DispatchService service=new DispatchService(orders,buildings,types,workers,records,access,data,algorithm,clock,workflow);
+    private final DispatchService service=new DispatchService(orders,buildings,types,workers,records,access,data,algorithm,clock,workflow,snapshots);
     private final UserVO admin=new UserVO(3,"admin","管理员",null,UserRole.ADMIN);
     private DispatchRecordEntity setup() {
         when(clock.instant()).thenAnswer(call->time.get());
         var order=new RepairOrderEntity();order.setId(1L);order.setStatus("WAIT_ASSIGN");order.setBuildingId(1L);order.setTypeId(1L);
-        when(orders.lockById(1)).thenReturn(order);
+        when(orders.lockById(1)).thenReturn(order);when(orders.selectById(1L)).thenReturn(order);
+        when(snapshots.current(1,1)).thenReturn(List.of());
         var building=new BuildingEntity();building.setLongitude(new BigDecimal("116.3"));building.setLatitude(new BigDecimal("39.9"));
         when(buildings.selectById(1L)).thenReturn(building);
         var type=new RepairTypeEntity();type.setName("照明与电路");type.setDescription("灯具开关");when(types.selectById(1L)).thenReturn(type);
@@ -59,10 +62,14 @@ class DispatchServiceTest {
         setup();time.set(Instant.parse("2026-09-30T00:00:00.600Z"));
         var worker=workers.lockById(1);
         when(data.available()).thenReturn(java.util.List.of(new DispatchDataService.Candidate(worker,"维修员")));
-        service.recommend(admin,1);
-        var capture=org.mockito.ArgumentCaptor.forClass(DispatchRecordEntity.class);
-        verify(records).insert(capture.capture());
-        var written=capture.getValue().getCreateTime();
+        var writtenTime=new AtomicReference<LocalDateTime>();
+        when(snapshots.persist(eq(1L),eq(1),anyList(),eq(true))).thenAnswer(call->{
+            List<DispatchRecordEntity> rows=call.getArgument(2);
+            writtenTime.set(rows.get(0).getCreateTime());return rows;
+        });
+        service.generate(admin,1,true);
+        verify(snapshots).persist(eq(1L),eq(1),anyList(),eq(true));
+        var written=writtenTime.get();
         var databaseTime=written.withNano(0).plusSeconds(written.getNano()>=500_000_000?1:0);
         var currentTime=LocalDateTime.ofInstant(time.get(),ZoneId.of("Asia/Shanghai"));
         assertFalse(databaseTime.isAfter(currentTime),"MySQL DATETIME(0) must not persist a future snapshot");

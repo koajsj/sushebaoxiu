@@ -18,6 +18,11 @@ public class DispatchController {
     public Result<List<WorkerRecommendationVO>> recommend(@AuthenticationPrincipal UserVO user, @PathVariable @Positive long orderId) {
         return Result.success(service.recommend(user,orderId));
     }
+    @PostMapping("/api/admin/dispatch/recommend/{orderId}")
+    public Result<List<WorkerRecommendationVO>> generate(@AuthenticationPrincipal UserVO user,@PathVariable @Positive long orderId,
+            @RequestParam(defaultValue="false") boolean refresh) {
+        return Result.success(service.generate(user,orderId,refresh));
+    }
     @PostMapping("/api/admin/dispatch")
     public Result<WorkerRecommendationVO> confirm(@AuthenticationPrincipal UserVO user, @Valid @RequestBody DispatchRequest input) {
         return Result.success(service.confirm(user,input));

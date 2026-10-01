@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.*;
 @lombok.RequiredArgsConstructor
 public class OrderWorkflowController {
     private final OrderWorkflowService service;
+    @PutMapping("/api/admin/orders/{id}/recall")
+    public Result<Void> recall(@AuthenticationPrincipal UserVO user,@PathVariable @Positive long id,@Valid @RequestBody RecallRequest input) {
+        service.recall(user,id,input);return Result.success(null);
+    }
     @PutMapping("/api/admin/orders/{id}/reject")
     public Result<Void> reject(@AuthenticationPrincipal UserVO user,@PathVariable @Positive long id,@Valid @RequestBody ReasonRequest input) {
         service.rejectAudit(user,id,input.reason());return Result.success(null);

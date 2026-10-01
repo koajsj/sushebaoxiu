@@ -46,6 +46,7 @@ mysql -u root -p < sql/phase4.sql
 mysql -u root -p < sql/phase5.sql
 mysql -u root -p < sql/business-enhancements.sql
 mysql -u root -p < sql/notification-after-commit.sql
+mysql -u root -p < sql/final-hardening.sql
 
 # 仅本地演示环境执行
 mysql -u root -p < sql/dev-users.sql
@@ -126,15 +127,15 @@ docs/      架构、API、数据库、流程与答辩资料
 
 - 学生：五步报修、私有图片、我的工单、事件时间线、驳回重提、预约确认、验收返工、评价。
 - 维修人员：工作台、接单或拒单、预约、维修记录、返工处理、工单沟通。
-- 管理员：审核、人工或可解释智能派单、重派、数据驾驶舱、校园坐标地图、沟通记录查看。
-- 共用：登录与三角色权限、站内通知、超时扫描、统一错误和参数校验。
+- 管理员：审核、人工或可解释智能派单、收回重派、账号及基础资料维护、数据驾驶舱、校园坐标地图、沟通记录查看。
+- 共用：登录与三角色权限、本人修改密码、分页通知、待接单/待开工/维修超时扫描、统一错误和参数校验。
 
 智能派单按技能 40%、距离 30%、当前负载 20%、历史评价 10% 计算，管理员确认后生效。地图使用静态坐标，演示坐标不代表真实学校位置。
 
-详细资料：[系统架构与流程](docs/architecture.md) · [API](docs/api-reference.md) · [数据库和迁移](docs/database.md) · [答辩演示](docs/defense-guide.md) · [最终审查与验证](docs/final-review.md)。
+详细资料：[系统架构与流程](docs/architecture.md) · [API](docs/api-reference.md) · [数据库和迁移](docs/database.md) · [答辩演示](docs/defense-guide.md) · [最终加固与验证](docs/final-hardening-review.md)。
 
 ## 构建与限制
 
-需要构建时，分别在 `backend/` 运行 `./mvnw -DskipTests package`，在 `frontend/` 运行 `npm run build`。最新的针对性验证和实际覆盖范围见 [最终审查记录](docs/final-review.md)；不要将服务端渲染检查当作浏览器视觉验收。
+需要构建时，分别在 `backend/` 运行 `./mvnw -DskipTests package`，在 `frontend/` 运行 `npm run build`。最新的针对性验证和实际覆盖范围见 [最终加固记录](docs/final-hardening-review.md)；不要将服务端渲染检查当作浏览器视觉验收。
 
-当前沟通和通知采用手动刷新；地图无实时定位或路线导航；每张工单和维修记录各支持一张可选图片。通知写入失败没有持久重试队列。生产部署还需要真实校园坐标、HTTPS、独立环境配置、数据库与图片目录备份，以及人工浏览器验收。
+工单沟通在页面可见时每15秒增量刷新，通知支持分页、未读筛选与全部已读；地图无实时定位或路线导航。每张工单和维修记录各支持一张可选图片。通知使用有界后台队列，写入失败会记日志，但没有持久重试队列；进程退出或队列拒绝可能漏通知。登录失败限流仅在当前进程内生效。生产部署还需要真实校园坐标、HTTPS、独立环境配置、数据库与图片目录备份，以及人工浏览器验收。

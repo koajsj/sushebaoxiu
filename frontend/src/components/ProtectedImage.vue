@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { loadImage } from '../api/repair'
+import { useAuthStore } from '../store/auth'
 const props = defineProps<{ url: string; alt?: string }>()
+const auth = useAuthStore()
 const source = ref(''), failed = ref(false)
 let revision = 0
 function release() { if (source.value) URL.revokeObjectURL(source.value); source.value = '' }
-watch(() => props.url, async (url) => {
+watch([() => props.url, () => auth.user?.id, () => auth.token], async ([url]) => {
   const current = ++revision; release(); failed.value = false
+  if (!auth.authenticated) return
   try {
     const blob = await loadImage(url)
     if (current === revision) source.value = URL.createObjectURL(blob)

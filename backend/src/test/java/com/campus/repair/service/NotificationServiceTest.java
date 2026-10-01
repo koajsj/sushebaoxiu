@@ -16,7 +16,7 @@ class NotificationServiceTest {
         var mapper=mock(NotificationMapper.class);
         var service=new NotificationService(mapper,mock(StudentMapper.class),mock(WorkerMapper.class),
                 mock(UserMapper.class),Clock.systemUTC(),mock(ApplicationEventPublisher.class));
-        var event=new BusinessNotificationEvent(7,"ASSIGN",11,"已派单","请查看工单","ASSIGN:11:2:42:7");
+        var event=new BusinessNotificationEvent(7,"ASSIGN",11,42,"已派单","请查看工单","ASSIGN:11:2:42:7");
         when(mapper.insert(any(NotificationEntity.class))).thenReturn(1).thenThrow(new DuplicateKeyException("same event key"));
 
         assertDoesNotThrow(()->{service.write(event);service.write(event);});

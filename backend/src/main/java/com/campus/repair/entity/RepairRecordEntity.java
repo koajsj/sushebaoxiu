@@ -12,4 +12,6 @@ public class RepairRecordEntity {
     private java.time.LocalDateTime startTime;
     private java.time.LocalDateTime finishTime;
     private Integer roundNo;
+    private String requestKey;
+    private String requestHash;
 }

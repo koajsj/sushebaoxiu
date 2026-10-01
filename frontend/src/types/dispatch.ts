@@ -3,7 +3,7 @@ import type { OrderStatus } from './repair'
 export interface WorkerRecommendation {
   recommendationId:number; workerId:number; workerName:string; skillType:string
   activeTaskCount:number; completedTaskCount:number; rating:number; distanceKm:number|null
-  skillScore:number; distanceScore:number; loadScore:number; ratingScore:number; totalScore:number; reason:string
+  skillScore:number; distanceScore:number; loadScore:number; ratingScore:number; totalScore:number; reason:string; expiresAt:string
 }
 export interface CampusBuilding { id:number; name:string; type:string; longitude:number|null; latitude:number|null }
 export interface MapOrder { id:number; title:string; status:OrderStatus; address:string; typeName:string; workerId:number|null; longitude:number|null; latitude:number|null; createTime:string }

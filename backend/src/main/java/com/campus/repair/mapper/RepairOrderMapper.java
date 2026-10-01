@@ -31,7 +31,13 @@ public interface RepairOrderMapper extends com.baomidou.mybatisplus.core.mapper.
 
     @org.apache.ibatis.annotations.Select("SELECT * FROM repair_order WHERE id = #{id} FOR UPDATE")
     RepairOrderEntity lockById(long id);
-    @org.apache.ibatis.annotations.Select("SELECT id FROM repair_order WHERE id > #{after} AND overdue_type IS NULL AND ((worker_id IS NOT NULL AND accepted_time IS NULL AND status IN ('WAIT_ASSIGN','ASSIGNED') AND response_due_time <= #{now}) OR (status='PROCESSING' AND repair_due_time <= #{now})) ORDER BY id LIMIT 100")
+    @org.apache.ibatis.annotations.Select("SELECT id FROM repair_order WHERE id > #{after} AND overdue_type IS NULL AND ((worker_id IS NOT NULL AND accepted_time IS NULL AND status IN ('WAIT_ASSIGN','ASSIGNED') AND response_due_time <= #{now}) OR (status='ASSIGNED' AND accepted_time IS NOT NULL AND started_time IS NULL AND start_due_time <= #{now}) OR (status='PROCESSING' AND repair_due_time <= #{now})) ORDER BY id LIMIT 100")
     java.util.List<Long> overdueCandidates(@org.apache.ibatis.annotations.Param("now") java.time.LocalDateTime now,
             @org.apache.ibatis.annotations.Param("after") long after);
+
+    @org.apache.ibatis.annotations.Select("SELECT COUNT(*) FROM repair_order WHERE worker_id=#{workerId} AND id<>#{orderId} AND status IN ('ASSIGNED','PROCESSING') AND appointment_status='ACCEPTED' AND appointment_start < #{end} AND appointment_end > #{start}")
+    long appointmentConflicts(@org.apache.ibatis.annotations.Param("workerId") long workerId,
+            @org.apache.ibatis.annotations.Param("orderId") long orderId,
+            @org.apache.ibatis.annotations.Param("start") java.time.LocalDateTime start,
+            @org.apache.ibatis.annotations.Param("end") java.time.LocalDateTime end);
 }

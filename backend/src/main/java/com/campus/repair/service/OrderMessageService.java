@@ -24,21 +24,35 @@ public class OrderMessageService {
     private final UserMapper users;
     private final OrderAccessService access;
     private final Clock clock;
+    public record Context(long orderId,String title,Long workerId,String workerName) {}
     private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
-    private RepairOrderEntity allowed(UserVO user,long orderId){
-        var order=orders.lockById(orderId);access.requireView(user,order);return order;
+    private RepairOrderEntity allowed(UserVO user,long orderId,boolean lock){
+        var order=lock?orders.lockById(orderId):orders.selectById(orderId);
+        access.requireView(user,order);return order;
+    }
+    @Transactional(readOnly=true)
+    public Context context(UserVO user,long orderId){
+        var order=allowed(user,orderId,false);
+        String name=null;
+        if(order.getWorkerId()!=null){var worker=workers.selectById(order.getWorkerId());
+            if(worker!=null){var account=users.selectById(worker.getUserId());if(account!=null)name=account.getRealName();}}
+        return new Context(orderId,order.getTitle(),order.getWorkerId(),name);
     }
     private MessageVO view(ChatMessageEntity row,Map<Long,String> names){
         return new MessageVO(row.getId(),row.getOrderId(),row.getSenderId(),names.getOrDefault(row.getSenderId(),"用户"),
                 row.getReceiverId(),row.getContent(),row.getReadStatus()==1,row.getCreateTime());
     }
     @Transactional
-    public List<MessageVO> list(UserVO user,long orderId){
-        allowed(user,orderId);
+    public List<MessageVO> list(UserVO user,long orderId,Long beforeId,Long afterId,int size){
+        if(beforeId!=null&&afterId!=null)throw new BusinessException(ErrorCode.BAD_REQUEST);
+        allowed(user,orderId,false);
         var query=new LambdaQueryWrapper<ChatMessageEntity>().eq(ChatMessageEntity::getOrderId,orderId);
         if(user.role()==UserRole.WORKER)query.and(q->q.eq(ChatMessageEntity::getSenderId,user.id()).or().eq(ChatMessageEntity::getReceiverId,user.id()));
-        var page=messages.selectPage(new Page<>(1,100,false),query.orderByDesc(ChatMessageEntity::getId));
-        var rows=new ArrayList<>(page.getRecords());Collections.reverse(rows);
+        if(beforeId!=null)query.lt(ChatMessageEntity::getId,beforeId);
+        if(afterId!=null)query.gt(ChatMessageEntity::getId,afterId);
+        var page=messages.selectPage(new Page<>(1,size,false),afterId!=null?
+                query.orderByAsc(ChatMessageEntity::getId):query.orderByDesc(ChatMessageEntity::getId));
+        var rows=new ArrayList<>(page.getRecords());if(afterId==null)Collections.reverse(rows);
         var received=rows.stream().filter(row->row.getReceiverId().equals(user.id())&&row.getReadStatus()==0)
                 .map(ChatMessageEntity::getId).toList();
         if(user.role()!=UserRole.ADMIN&&!received.isEmpty()){
@@ -54,7 +68,7 @@ public class OrderMessageService {
     }
     @Transactional
     public MessageVO send(UserVO user,long orderId,MessageRequest input){
-        var order=allowed(user,orderId);
+        var order=allowed(user,orderId,true);
         if(user.role()==UserRole.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
         if(input.expectedWorkerId()!=null&&!input.expectedWorkerId().equals(order.getWorkerId())) throw new BusinessException(ErrorCode.CONFLICT);
         if(order.getWorkerId()==null) throw new BusinessException(ErrorCode.CONFLICT);

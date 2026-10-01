@@ -29,7 +29,7 @@ async function load(){const current=++revision;loading.value=true;error.value=''
 onMounted(load)
 onBeforeUnmount(()=>{revision++})
 </script>
-<template><section class="business-page map-page"><header class="page-heading"><div><p class="eyebrow">CAMPUS, CONNECTED</p><h1>校园任务地图</h1><p>从地点看见任务，从任务了解进度。静态服务坐标，无实时定位。</p></div><RouterLink class="text-button" to="/admin/dispatch">前往智能派单 →</RouterLink></header>
+<template><section class="business-page map-page"><header class="page-heading"><div><p class="eyebrow">校园服务 · 空间分布</p><h1>校园任务地图</h1><p>从地点看见任务，从任务了解进度。静态服务坐标，无实时定位。</p></div><RouterLink class="text-button" to="/admin/dispatch">前往智能派单 →</RouterLink></header>
   <div class="map-filter-bar"><label>订单状态<select v-model="status" :disabled="loading" @change="load"><option value="">全部状态</option><option v-for="(label,value) in statusLabels" :key="value" :value="value">{{ label }}</option></select></label><div class="map-layer-controls"><label><input v-model="showBuildings" type="checkbox"/>建筑</label><label><input v-model="showOrders" type="checkbox"/>报修点</label><label><input v-model="showWorkers" type="checkbox"/>维修员</label></div><button class="secondary-button" :disabled="loading" @click="load">{{ loading?'加载中…':'刷新位置' }}</button></div>
   <div v-if="error" class="notice error" role="alert">{{ error }}<button class="text-button" @click="load">重试</button></div>
   <p v-if="loading&&!allMarkers.length" class="empty-state" role="status">正在读取校园坐标与任务…</p>

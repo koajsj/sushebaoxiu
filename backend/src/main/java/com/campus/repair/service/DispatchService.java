@@ -26,6 +26,7 @@ public class DispatchService {
     private final DispatchAlgorithm algorithm;
     private final Clock clock;
     private final OrderWorkflowService workflow;
+    private final DispatchSnapshotService snapshots;
 
     private LocalDateTime now() {
         // DATETIME(0) rounds fractions; truncate explicitly so a fresh snapshot is never in the future.
@@ -36,6 +37,13 @@ public class DispatchService {
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND);
         OrderStatus.require(order.getStatus(), OrderStatus.WAIT_ASSIGN);
         if (order.getWorkerId() != null) throw new BusinessException(ErrorCode.CONFLICT);
+        return order;
+    }
+    private RepairOrderEntity eligibleOrderRead(long id) {
+        var order=orders.selectById(id);
+        if(order==null)throw new BusinessException(ErrorCode.NOT_FOUND);
+        OrderStatus.require(order.getStatus(),OrderStatus.WAIT_ASSIGN);
+        if(order.getWorkerId()!=null)throw new BusinessException(ErrorCode.CONFLICT);
         return order;
     }
     private static Double coordinate(BigDecimal value) { return value == null ? null : value.doubleValue(); }
@@ -58,16 +66,45 @@ public class DispatchService {
     private WorkerRecommendationVO view(DispatchRecordEntity row, WorkerEntity worker, String name, long load, Double distance) {
         return new WorkerRecommendationVO(row.getId(), worker.getId(), name, worker.getSkillType(), load,
                 worker.getTaskCount(), worker.getScore(), row.getSkillScore(), row.getDistanceScore(), row.getLoadScore(),
-                row.getRatingScore(), row.getTotalScore(), distance, row.getReason());
+                row.getRatingScore(), row.getTotalScore(), distance, row.getReason(),
+                row.getCreateTime().plusMinutes(10).atZone(ZoneId.of("Asia/Shanghai")).toInstant());
     }
 
-    @Transactional(isolation=Isolation.READ_COMMITTED)
+    private List<WorkerRecommendationVO> views(RepairOrderEntity order,List<DispatchRecordEntity> rows) {
+        if(rows.isEmpty())return List.of();
+        var candidates=new HashMap<Long,DispatchDataService.Candidate>();
+        data.available().forEach(candidate->candidates.put(candidate.worker().getId(),candidate));
+        var loads=data.activeLoads();
+        var building=buildings.selectById(order.getBuildingId());
+        var type=types.selectById(order.getTypeId());
+        if(building==null||type==null)throw new BusinessException(ErrorCode.INVALID_REFERENCE);
+        return rows.stream().filter(row->candidates.containsKey(row.getWorkerId())).map(row->{
+            var candidate=candidates.get(row.getWorkerId());var worker=candidate.worker();
+            long load=loads.getOrDefault(worker.getId(),0L);
+            var fresh=algorithm.score(new DispatchAlgorithm.Input(type.getName(),type.getDescription(),worker.getSkillType(),
+                    coordinate(building.getLongitude()),coordinate(building.getLatitude()),
+                    coordinate(worker.getLongitude()),coordinate(worker.getLatitude()),load,worker.getScore().doubleValue()));
+            return view(row,worker,candidate.name(),load,fresh.distanceKm());
+        }).sorted(Comparator.comparing(WorkerRecommendationVO::totalScore).reversed()
+                .thenComparing(WorkerRecommendationVO::distanceKm,Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(WorkerRecommendationVO::workerId)).toList();
+    }
+
+    @Transactional(readOnly=true)
     public List<WorkerRecommendationVO> recommend(UserVO user, long orderId) {
         access.requireAdmin(user);
-        var order = eligibleOrder(orderId);
+        var order=eligibleOrderRead(orderId);
+        return views(order,snapshots.current(orderId,order.getDispatchRound()+1));
+    }
+
+    public List<WorkerRecommendationVO> generate(UserVO user,long orderId,boolean refresh) {
+        access.requireAdmin(user);
+        var order=eligibleOrderRead(orderId);
+        var cached=snapshots.current(orderId,order.getDispatchRound()+1);
+        if(!refresh&&!cached.isEmpty())return views(order,cached);
         var loads = data.activeLoads();
         String batch = UUID.randomUUID().toString();
-        var result = new ArrayList<WorkerRecommendationVO>();
+        var calculated = new ArrayList<DispatchRecordEntity>();
         // Load common references once per batch, rather than per candidate.
         var building = buildings.selectById(order.getBuildingId());
         var type = types.selectById(order.getTypeId());
@@ -78,13 +115,14 @@ public class DispatchService {
             var scores = algorithm.score(new DispatchAlgorithm.Input(type.getName(), type.getDescription(), worker.getSkillType(),
                     coordinate(building.getLongitude()), coordinate(building.getLatitude()),
                     coordinate(worker.getLongitude()), coordinate(worker.getLatitude()), load, worker.getScore().doubleValue()));
-            var row = save(orderId, worker.getId(), scores, batch, false, order.getDispatchRound()+1);
-            result.add(view(row, worker, candidate.name(), load, scores.distanceKm()));
+            var row=new DispatchRecordEntity();row.setOrderId(orderId);row.setWorkerId(worker.getId());
+            row.setSkillScore(scores.skillScore());row.setDistanceScore(scores.distanceScore());row.setLoadScore(scores.loadScore());
+            row.setRatingScore(scores.ratingScore());row.setTotalScore(scores.totalScore());row.setReason(scores.reason());
+            row.setRecommendationBatch(batch);row.setRoundNo(order.getDispatchRound()+1);row.setConfirmed(false);
+            row.setCreateTime(now());row.setMethod("SMART");row.setDecision("RECOMMENDED");calculated.add(row);
         }
-        result.sort(Comparator.comparing(WorkerRecommendationVO::totalScore).reversed()
-                .thenComparing(WorkerRecommendationVO::distanceKm, Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(WorkerRecommendationVO::workerId));
-        return result;
+        if(calculated.isEmpty())return List.of();
+        return views(order,snapshots.persist(orderId,order.getDispatchRound()+1,calculated,refresh));
     }
 
     @Transactional(isolation=Isolation.READ_COMMITTED)

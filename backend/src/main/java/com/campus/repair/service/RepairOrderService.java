@@ -8,11 +8,13 @@ import com.campus.repair.dto.*;
 import com.campus.repair.entity.*;
 import com.campus.repair.mapper.*;
 import com.campus.repair.vo.*;
+import com.campus.repair.utils.RequestFingerprint;
 import java.math.RoundingMode;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -46,9 +48,15 @@ public class RepairOrderService {
         order.setStatus(target.name()); order.setUpdateTime(now()); orders.updateById(order); event(order, user, action);
     }
 
-    @Transactional
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public OrderVO create(UserVO user, CreateOrderRequest input) {
         var student = access.student(user);
+        if(input.requestKey()==null)throw new BusinessException(ErrorCode.BAD_REQUEST);
+        String hash=RequestFingerprint.of(String.valueOf(input.typeId()),input.title().strip(),input.description().strip(),
+                input.imageUrl(),String.valueOf(input.buildingId()),input.roomNo().strip(),input.priority());
+        var existing=orders.selectOne(new LambdaQueryWrapper<RepairOrderEntity>()
+                .eq(RepairOrderEntity::getStudentId,student.getId()).eq(RepairOrderEntity::getRequestKey,input.requestKey()));
+        if(existing!=null)return original(existing,hash);
         if (types.selectById(input.typeId()) == null || buildings.selectById(input.buildingId()) == null)
             throw new BusinessException(ErrorCode.INVALID_REFERENCE);
         var order = new RepairOrderEntity();
@@ -56,12 +64,23 @@ public class RepairOrderService {
         order.setTitle(input.title().strip()); order.setDescription(input.description().strip());
         order.setBuildingId(input.buildingId()); order.setRoomNo(input.roomNo().strip());
         order.setPriority(input.priority()); order.setStatus(OrderStatus.WAIT_AUDIT.name());
+        order.setRequestKey(input.requestKey());order.setRequestHash(hash);
         order.setCreateTime(now()); order.setUpdateTime(order.getCreateTime());
-        orders.insert(order);
+        try { orders.insert(order); }
+        catch(DuplicateKeyException duplicate) {
+            existing=orders.selectOne(new LambdaQueryWrapper<RepairOrderEntity>()
+                    .eq(RepairOrderEntity::getStudentId,student.getId()).eq(RepairOrderEntity::getRequestKey,input.requestKey()));
+            if(existing==null)throw duplicate;
+            return original(existing,hash);
+        }
         order.setImageUrl(images.bind(user, input.imageUrl(), order.getId()));
         if (order.getImageUrl() != null) orders.updateById(order);
         event(order, user, "SUBMIT");
         return views(List.of(order)).get(0);
+    }
+    private OrderVO original(RepairOrderEntity row,String hash) {
+        if(!hash.equals(row.getRequestHash()))throw new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT);
+        return views(List.of(row)).get(0);
     }
 
     private LambdaQueryWrapper<RepairOrderEntity> scope(UserVO user) {
@@ -78,6 +97,18 @@ public class RepairOrderService {
         var query = scope(user);
         var status = OrderStatus.filter(input.getStatus());
         if (status != null) query.eq(RepairOrderEntity::getStatus, status.name());
+        if(input.getPhase()!=null&&!input.getPhase().isBlank()) {
+            OrderPhase phase;
+            try { phase=OrderPhase.valueOf(input.getPhase()); }
+            catch(IllegalArgumentException invalid) { throw new BusinessException(ErrorCode.BAD_REQUEST); }
+            switch(phase) {
+                case WAIT_DISPATCH -> query.eq(RepairOrderEntity::getStatus,"WAIT_ASSIGN").isNull(RepairOrderEntity::getWorkerId);
+                case WAIT_ACCEPT -> query.isNotNull(RepairOrderEntity::getWorkerId).isNull(RepairOrderEntity::getAcceptedTime)
+                        .in(RepairOrderEntity::getStatus,"WAIT_ASSIGN","ASSIGNED");
+                case WAIT_START -> query.eq(RepairOrderEntity::getStatus,"ASSIGNED").isNotNull(RepairOrderEntity::getAcceptedTime);
+                default -> query.eq(RepairOrderEntity::getStatus,phase.name());
+            }
+        }
         if (Boolean.TRUE.equals(input.getOverdue())) query.isNotNull(RepairOrderEntity::getOverdueType);
         else if (Boolean.FALSE.equals(input.getOverdue())) query.isNull(RepairOrderEntity::getOverdueType);
         if (input.getTypeId() != null) query.eq(RepairOrderEntity::getTypeId, input.getTypeId());
@@ -147,15 +178,18 @@ public class RepairOrderService {
     @Transactional
     public void record(UserVO user, RepairRecordRequest input) {
         var order = locked(input.orderId()); var worker = access.requireWorkerOwner(user, order);
-        OrderStatus.require(order.getStatus(), OrderStatus.PROCESSING);
         String normalizedImage=input.imageUrl()==null||input.imageUrl().isBlank()?null:input.imageUrl();
-        // The order lock serializes retrying the same saved result without duplicate rows/images/events.
-        if (records.selectCount(new LambdaQueryWrapper<RepairRecordEntity>().eq(RepairRecordEntity::getOrderId,order.getId())
-                .eq(RepairRecordEntity::getRoundNo,order.getRepairRound()).eq(RepairRecordEntity::getContent,input.content().strip())
-                .eq(normalizedImage!=null,RepairRecordEntity::getImageUrl,normalizedImage)
-                .isNull(normalizedImage==null,RepairRecordEntity::getImageUrl))>0) return;
+        String hash=RequestFingerprint.of(String.valueOf(input.orderId()),input.content().strip(),normalizedImage);
+        var existing=records.selectOne(new LambdaQueryWrapper<RepairRecordEntity>()
+                .eq(RepairRecordEntity::getWorkerId,worker.getId()).eq(RepairRecordEntity::getRequestKey,input.requestKey()));
+        if(existing!=null) {
+            if(!hash.equals(existing.getRequestHash()))throw new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT);
+            return;
+        }
+        OrderStatus.require(order.getStatus(), OrderStatus.PROCESSING);
         var record = new RepairRecordEntity(); record.setOrderId(order.getId()); record.setWorkerId(worker.getId());
         record.setContent(input.content().strip()); record.setStartTime(order.getStartedTime());record.setRoundNo(order.getRepairRound());
+        record.setRequestKey(input.requestKey());record.setRequestHash(hash);
         record.setImageUrl(images.bind(user, normalizedImage, order.getId())); records.insert(record);workflow.emit(order,user,"RECORD","已保存第"+order.getRepairRound()+"轮维修结果");
     }
     @Transactional

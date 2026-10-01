@@ -88,3 +88,31 @@
 @media(max-width:430px){.chat-composer{flex-wrap:wrap}.chat-composer textarea{flex-basis:100%}.chat-composer button{margin-left:auto}.dashboard-card{padding:16px}.dashboard-card strong{font-size:27px}}
 
 @media (min-width:741px) and (max-width:1150px) { .dashboard-map.has-selection { grid-template-columns:1fr; } }
+
+.notification-tools,.notification-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 18px;border-bottom:1px solid var(--surface-line)}
+.notification-tools button,.notification-pages button{border:0;background:none;color:var(--muted);font-size:11px;cursor:pointer;padding:6px 4px}
+.notification-tools button[aria-pressed=true]{color:var(--accent);font-weight:600}
+.notification-pages span{font-size:11px;color:var(--muted)}
+.notification-tools button:disabled,.notification-pages button:disabled{opacity:.45;cursor:default}
+.chat-history{align-self:center;margin:0 auto 4px}
+.chat-new-hint{align-self:center;display:block;margin:8px auto;border:1px solid var(--surface-line);border-radius:999px;background:var(--accent-soft);color:var(--accent);padding:7px 16px;font-size:12px;cursor:pointer}
+.detail-next-step{margin:16px 0 0;padding:13px 16px;border-left:3px solid var(--accent);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--accent-soft);color:#294762;font-size:13px;line-height:1.55}
+.management-page,.password-page{max-width:1280px;margin:auto}
+.management-tabs{display:flex;gap:5px;margin:25px 0;border-bottom:1px solid var(--surface-line);overflow:auto}
+.management-tabs button{flex-shrink:0;border:0;border-bottom:2px solid transparent;background:none;padding:12px 17px;color:var(--muted);font-size:13px;cursor:pointer}
+.management-tabs button[aria-current=page]{color:var(--accent);border-color:var(--accent);font-weight:600}
+.management-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr);gap:32px;align-items:start}
+.management-list{min-width:0;padding:8px 0}.management-list h2,.management-form h2{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.management-list>.section-heading{margin-bottom:12px}.management-list select{border:1px solid var(--surface-line);border-radius:var(--radius-sm);background:var(--surface);padding:8px 11px;color:var(--ink)}
+.management-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:16px 0;border-bottom:1px solid var(--surface-line)}
+.management-row>div{display:grid;gap:5px;flex:1;min-width:150px}.management-row strong{font-size:14px;font-weight:600}.management-row small{color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.management-row button{padding:5px 0;white-space:nowrap}.management-state{font-size:11px;color:var(--muted)}
+.management-pages{display:flex;justify-content:center;align-items:center;gap:15px;padding:18px}.management-pages button{border:0;background:none;color:var(--accent);cursor:pointer}
+.management-form{display:grid;gap:14px;padding:25px;border:1px solid var(--surface-line);border-radius:var(--radius-lg);background:var(--surface);box-shadow:var(--surface-shadow)}
+.management-form>.section-heading{margin-bottom:4px}.management-form label{display:grid;gap:6px;color:#485966;font-size:12px;font-weight:500}
+.management-form input,.management-form select,.management-form textarea{width:100%;min-width:0;border:1px solid #dfe5eb;border-radius:var(--radius-sm);padding:10px 12px;background:#fbfcfd;color:var(--ink);outline:none;transition:border-color var(--motion),box-shadow var(--motion)}
+.management-form input:focus,.management-form select:focus,.management-form textarea:focus{border-color:var(--accent);box-shadow:var(--focus-ring);background:#fff}
+.management-form .primary-button{justify-self:start;margin-top:4px}.management-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.password-page .management-form{max-width:440px;margin-top:28px}.account-settings-link{white-space:nowrap;font-size:12px}
+@media(max-width:900px){.management-layout{grid-template-columns:1fr;gap:20px}.management-form{max-width:650px}}
+@media(max-width:520px){.management-form{padding:18px}.management-coordinates{grid-template-columns:1fr}.account-settings-link{font-size:11px}.management-row{gap:10px}}

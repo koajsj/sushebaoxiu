@@ -22,7 +22,7 @@ flowchart LR
 
 登录是唯一公开认证入口，健康检查公开；其他接口需JWT。角色路径由Security限制，订单、聊天、图片、通知进一步按数据归属验证。角色以数据库当前值为准，禁用账号或token_version变化可拒绝旧令牌。客户端角色与路由保护负责用户体验，不能代替服务端权限。
 
-响应统一为`{code,message,data}`，图片为受限二进制响应。分页最大100，聊天最近100条、通知最近50条、地图最多500单。数据库事务包含状态、事件、图片绑定、必要通知等写入；失败整体回滚。
+响应统一为`{code,message,data}`，图片为受限二进制响应。工单分页最大100，聊天和通知均支持历史分页，地图最多500单。数据库主事务包含状态、事件、图片绑定；通知在提交后交由有界后台队列，以独立事务写入，失败记录日志，不回滚已成功业务。
 
 ## 功能结构图
 
@@ -38,12 +38,12 @@ flowchart TD
     Worker --> W2[接单 / 开始 / 记录 / 完成]
     Admin --> A1[审核 / 人工派单]
     Admin --> A2[智能推荐与确认 / 静态校园地图]
-    Admin --> A3[数据驾驶舱 / 沟通只读]
-    Shared --> C1[认证 / 权限 / 通知与已读]
+    Admin --> A3[数据驾驶舱 / 沟通只读 / 账号与基础资料维护]
+    Shared --> C1[认证 / 权限 / 分页通知与已读]
     Shared --> C2[订单内学生与当前维修员文字沟通]
 ```
 
-前端统一系统字体、蓝色强调、浅色留白、圆角和轻阴影；组件复用而非后台模板。路由按需加载；地图、图表使用SVG/CSS。通知与聊天没有轮询或WebSocket，提供手动刷新。
+前端统一系统字体、蓝色强调、浅色留白、圆角和轻阴影。路由按需加载；地图、图表使用SVG/CSS。工单聊天仅在页面可见时每15秒增量拉取并支持更早历史；通知按需请求。均不使用WebSocket。
 
 ## ER图
 
@@ -119,6 +119,8 @@ erDiagram
         string image_url
         string priority
         string status
+        datetime start_due_time
+        string request_key UK
         datetime create_time
         datetime update_time
     }
@@ -130,6 +132,7 @@ erDiagram
         string image_url
         datetime start_time
         datetime finish_time
+        string request_key UK
     }
     EVALUATION {
         bigint id PK

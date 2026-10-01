@@ -1,0 +1,126 @@
+/* Shared web design language. Element Plus remains the existing control library. */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #20252b;
+  background: #f5f7f9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  --canvas: #f5f7f9;
+  --surface: #fff;
+  --surface-subtle: #f8fafc;
+  --surface-line: #e3e9ef;
+  --line: #dce4ec;
+  --ink: #20252b;
+  --muted: #64717d;
+  --accent: #1768b3;
+  --accent-hover: #12558f;
+  --accent-soft: #eaf3fc;
+  --success: #28744e;
+  --success-soft: #eaf5ef;
+  --warning: #8a5b1c;
+  --warning-soft: #fbf1e3;
+  --danger: #ae403d;
+  --danger-soft: #fcf0ef;
+  --info: #315e88;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 24px;
+  --surface-shadow: 0 3px 16px rgb(29 52 77 / 4%);
+  --overlay-shadow: 0 18px 48px rgb(29 52 77 / 14%);
+  --focus-ring: 0 0 0 3px rgb(23 104 179 / 16%);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --motion-fast: 140ms;
+  --motion: 180ms;
+  --ease-out: cubic-bezier(.2, .7, .2, 1);
+  --text-caption: 12px;
+  --text-body: 14px;
+  --text-section: 18px;
+  --text-page: clamp(28px, 2.7vw, 38px);
+
+  --el-color-primary: var(--accent);
+  --el-color-primary-light-3: #5d95c8;
+  --el-color-primary-light-5: #8bb4d9;
+  --el-color-primary-light-7: #b9d3e9;
+  --el-color-primary-light-8: #d0e1f0;
+  --el-color-primary-light-9: #e8f1f8;
+  --el-color-primary-dark-2: var(--accent-hover);
+  --el-color-success: var(--success);
+  --el-color-warning: var(--warning);
+  --el-color-danger: var(--danger);
+  --el-color-info: var(--info);
+  --el-border-radius-base: var(--radius-sm);
+  --el-text-color-primary: var(--ink);
+  --el-text-color-regular: var(--muted);
+  --el-border-color: var(--line);
+  --el-fill-color-blank: var(--surface);
+}
+
+html { background: var(--canvas); scroll-behavior: smooth; }
+body { color: var(--ink); background: var(--canvas); }
+::selection { background: #d5e9fb; color: var(--ink); }
+:where(button, a, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+button:not(:disabled) { -webkit-tap-highlight-color: transparent; }
+
+/* The same surfaces and controls are used by each role and every workflow. */
+:is(.summary-widget, .order-card, .detail-surface, .timeline-surface, .wizard-surface,
+  .dashboard-card, .chart-panel, .recommend-card, .management-form, .chat-shell,
+  .map-panel, .location-card, .submission-success) {
+  border-color: var(--surface-line);
+  border-radius: var(--radius);
+  box-shadow: var(--surface-shadow);
+}
+.business-page { min-width: 0; }
+.page-heading { margin-block: var(--space-3) var(--space-6); }
+.page-heading h1 { color: var(--ink); font-size: var(--text-page); line-height: 1.18; letter-spacing: -.04em; }
+.page-heading > div > p:last-child { max-width: 66ch; color: var(--muted); font-size: var(--text-body); line-height: 1.65; }
+.eyebrow { color: var(--accent); font-size: var(--text-caption); letter-spacing: .045em; line-height: 1.45; }
+.section-heading h2, .detail-surface h2, .timeline-surface h2, .chart-panel h2 { color: var(--ink); font-size: var(--text-section); }
+.muted, .field-hint, .list-count, .record-time { color: var(--muted); font-size: var(--text-caption); line-height: 1.6; }
+.primary-button, .secondary-button, .el-button { font-weight: 600; }
+.primary-button, .secondary-button { border-radius: var(--radius-sm); transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) ease; }
+.primary-button, .el-button--primary { background: var(--accent); color: #fff; }
+.primary-button:hover:not(:disabled) { background: var(--accent-hover); }
+.secondary-button { border-color: var(--line); background: var(--surface); }
+.secondary-button:hover:not(:disabled) { border-color: #b9cbdc; background: var(--surface-subtle); }
+.primary-button:active:not(:disabled), .secondary-button:active:not(:disabled), .el-button:active:not(:disabled) { transform: scale(.985); }
+.text-button { font-size: 13px; font-weight: 600; line-height: 1.5; }
+.text-button:hover:not(:disabled), .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.el-button { --el-button-border-radius: var(--radius-sm); }
+.el-button.is-text:hover { background: var(--accent-soft); }
+:is(.business-page, .management-form) :is(input:not([type=radio]):not([type=file]):not([type=checkbox]), select, textarea) {
+  border-color: var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: var(--text-body);
+}
+:is(.business-page, .management-form) :is(input, select, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--focus-ring); }
+.el-input__wrapper { border-radius: var(--radius-sm); transition: box-shadow var(--motion-fast), background var(--motion-fast); }
+.el-dialog, .el-drawer { --el-dialog-border-radius: var(--radius-lg); --el-dialog-padding-primary: 24px; }
+.el-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.el-table { --el-table-border-color: var(--surface-line); --el-table-header-bg-color: var(--surface-subtle); border-radius: var(--radius-sm); }
+.el-tag { --el-tag-border-radius: 999px; }
+.status-pill, .notification-badge { font-weight: 600; }
+.empty-state { border-color: var(--line); background: var(--surface); color: var(--muted); }
+.notice { border: 1px solid transparent; }
+.notice.error, .form-error { border-color: #f1d9d6; background: var(--danger-soft); color: var(--danger); }
+.notice.success { border-color: #d1e9da; background: var(--success-soft); color: var(--success); }
+
+.page-enter-active, .page-leave-active { transition: opacity var(--motion-fast) var(--ease-out), transform var(--motion-fast) var(--ease-out); }
+.page-enter-from, .page-leave-to { opacity: 0; transform: translateY(5px); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

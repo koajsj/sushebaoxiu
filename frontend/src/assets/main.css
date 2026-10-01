@@ -1,22 +1,8 @@
-/* Apple-inspired web styling, implemented with existing Element Plus and native CSS. */
-:root {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  color: #1d1d1f; background: #f5f5f7; font-synthesis: none; text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  --accent: #0066cc; --ink: #1d1d1f; --muted: #626269; --line: #dedee3; --radius: 18px;
-  --accent-soft: #edf4fc; --surface-subtle: #f8f9fb; --success: #327549; --warning: #876021; --danger: #aa3e32;
-  --radius-sm: 12px; --radius-lg: 22px; --motion: 180ms;
-  --canvas: #f5f5f7; --surface: #fff; --surface-line: #e7eaf0;
-  --surface-shadow: 0 2px 8px #243d5605; --focus-ring: 0 0 0 3px #0066cc14;
-  --el-color-primary: #0066cc; --el-color-primary-light-3: #3385d6; --el-color-primary-light-5: #80b3e6;
-  --el-color-primary-light-7: #b3d1f0; --el-color-primary-light-8: #cce0f5; --el-color-primary-light-9: #e6f0fa;
-  --el-color-primary-dark-2: #0052a3; --el-border-radius-base: 12px; --el-text-color-primary: #1d1d1f;
-}
+/* Page composition; shared tokens and controls live in design-system.css. */
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
 button, input, select, textarea { font: inherit; }
 a { color: inherit; text-decoration: none; }
-a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 h1, h2, h3, p { margin: 0; }
 .skip-link { position: fixed; z-index: 70; left: 18px; top: 12px; padding: 12px 18px; background: var(--surface); border-radius: 12px; box-shadow: var(--surface-shadow); transform: translateY(-160%); color: var(--accent); }
 .skip-link:focus { transform: translateY(0); }
@@ -90,8 +76,6 @@ h1, h2, h3, p { margin: 0; }
 .text-link { color: var(--accent); }.text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 .not-found { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100dvh; gap: 20px; padding: 32px; text-align: center; }
 .not-found-code { font-size: 100px; font-weight: 300; color: var(--accent); }.not-found h1 { font-size: 26px; }.not-found > p:not(.not-found-code) { font-size: 14px; color: var(--muted); }
-.page-enter-active, .page-leave-active { transition: opacity 160ms ease, transform 160ms ease; }
-.page-enter-from, .page-leave-to { opacity: 0; transform: translateY(6px); }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 1000px) {
@@ -115,13 +99,3 @@ h1, h2, h3, p { margin: 0; }
   .workspace-header { padding: 13px 16px; }.user-menu { width: 100%; justify-content: flex-end; }.header-title { width: 100%; justify-content: space-between; }
   .workspace-content { padding: 24px 16px; }.login-card { padding: 28px 24px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
-}
-
-/* Shared control surfaces keep native and Element Plus controls consistent. */
-input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
-.el-button { --el-button-border-radius: var(--radius-sm); font-weight: 500; }
-.el-dialog, .el-drawer { --el-dialog-border-radius: var(--radius-lg); --el-dialog-padding-primary: 24px; }
-.el-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); overflow-y: auto; }
-button:not(:disabled) { -webkit-tap-highlight-color: transparent; }

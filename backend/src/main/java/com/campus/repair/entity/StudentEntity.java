@@ -9,6 +9,8 @@ public class StudentEntity {
     private String studentNo;
     private String college;
     private String className;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private Long buildingId;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private String roomNo;
 }

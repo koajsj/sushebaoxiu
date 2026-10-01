@@ -110,19 +110,49 @@ try {
     chatState = Chat.setup({ role: 'student' }, { expose() {} })
     return () => h('div')
   } }).use(loginContext.pinia).use(loginContext.router))
-  chatState.detail.value = { order: { id: 99, workerId: 2 } }
+  chatState.context.value = { orderId: 99, title: '隔离测试', workerId: 2, workerName: '原维修员' }
   chatState.draft.value = '发送给原维修人员的草稿'
   await nextTick()
   http.defaults.adapter = async (config) => {
-    if (config.url === '/orders/99') return response(config, { order: { id: 99, workerId: 3 } })
+    if (config.url === '/orders/99/messages/context') return response(config, { orderId: 99, title: '隔离测试', workerId: 3, workerName: '新维修员' })
     if (config.method === 'post') { sentMessages++; return response(config, { id: 1 }) }
     return response(config, [])
   }
   await chatState.load()
   await chatState.send()
   assert.equal(sentMessages, 0, 'Refresh after reassignment must not silently send an old draft to new staff')
-  assert.ok(chatState.draft.value, 'Recipient change must preserve the draft for review')
-  console.log('PASS refreshed chat recipient change preserves draft and requires review')
+  assert.equal(chatState.draft.value, '', 'Recipient change must clear the old-context draft')
+  console.log('PASS refreshed chat recipient change clears old-context draft')
+
+  const workerContext = context()
+  workerContext.auth.initialized = true
+  workerContext.auth.token = 'worker-fixture'
+  workerContext.auth.user = user('WORKER')
+  await workerContext.router.push('/worker/orders/99')
+  const { default: Detail } = await server.ssrLoadModule('/src/views/OrderDetailView.vue')
+  let detailState, finishRecord, recordStarted
+  const pendingRecord = new Promise((resolve) => { recordStarted = resolve })
+  await renderToString(createSSRApp({ setup() {
+    detailState = Detail.setup({ role: 'worker' }, { expose() {} })
+    return () => h('div')
+  } }).use(workerContext.pinia).use(workerContext.router))
+  detailState.loading.value = false
+  detailState.content.value = '正在保存的原草稿'
+  await nextTick()
+  http.defaults.adapter = async (config) => {
+    if (config.url === '/worker/repair-record') return new Promise((resolve) => {
+      finishRecord = () => resolve(response(config, null)); recordStarted()
+    })
+    if (config.url === '/orders/99') return response(config, { order: { id: 99, repairRound: 1 }, records: [], dispatchHistory: [] })
+    return response(config, null)
+  }
+  const saving = detailState.saveRecord()
+  await pendingRecord
+  detailState.content.value = '保存期间继续输入的新草稿'
+  await nextTick()
+  finishRecord(); await saving
+  assert.equal(detailState.content.value, '保存期间继续输入的新草稿')
+  console.log('PASS record save keeps text entered while request was pending')
 
   http.defaults.adapter = async (config) => {
     throw new AxiosError('Forbidden', 'ERR_BAD_REQUEST', config, null, {

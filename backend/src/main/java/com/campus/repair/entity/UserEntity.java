@@ -16,6 +16,7 @@ public class UserEntity {
     @JsonIgnore
     private String password;
     private String realName;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private String phone;
     private UserRole role;
     private Integer status;

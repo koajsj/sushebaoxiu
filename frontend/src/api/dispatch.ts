@@ -9,6 +9,9 @@ function unwrap<T>(result:ApiResult<T>):T {
 export async function getRecommendations(orderId:number) {
   return unwrap((await http.get<ApiResult<WorkerRecommendation[]>>(`/admin/dispatch/recommend/${orderId}`)).data)
 }
+export async function generateRecommendations(orderId:number,refresh=false) {
+  return unwrap((await http.post<ApiResult<WorkerRecommendation[]>>(`/admin/dispatch/recommend/${orderId}`,undefined,{params:{refresh}})).data)
+}
 export async function confirmDispatch(orderId:number,worker:WorkerRecommendation) {
   return unwrap((await http.post<ApiResult<WorkerRecommendation>>('/admin/dispatch',{
     orderId,workerId:worker.workerId,recommendationId:worker.recommendationId,

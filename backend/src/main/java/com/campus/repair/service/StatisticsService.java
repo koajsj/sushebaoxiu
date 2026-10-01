@@ -33,9 +33,11 @@ public class StatisticsService {
         var result=new LinkedHashMap<String,Object>();
         result.put("todayCount",number(counts.get("today")));
         result.put("activeCount",number(counts.get("active")));
-        result.put("completionRate",total==0?BigDecimal.ZERO:BigDecimal.valueOf(completed*100.0/total).setScale(1,RoundingMode.HALF_UP));
-        result.put("averageRepairHours",seconds==null?BigDecimal.ZERO:BigDecimal.valueOf(seconds/3600).setScale(1,RoundingMode.HALF_UP));
+        result.put("completionRate",total==0?null:BigDecimal.valueOf(completed*100.0/total).setScale(1,RoundingMode.HALF_UP));
+        result.put("averageRepairHours",seconds==null?null:BigDecimal.valueOf(seconds/3600).setScale(1,RoundingMode.HALF_UP));
         result.put("totalCount",total);
+        result.put("waitingAuditCount",number(counts.get("waitingAudit")));
+        result.put("reworkPendingCount",number(counts.get("reworkPending")));
         result.put("overdueCount",number(counts.get("overdue")));result.put("reworkCount",number(counts.get("rework")));
         return result;
     }
@@ -56,14 +58,18 @@ public class StatisticsService {
         access.requireAdmin(user);
         var rows=statistics.typeCounts();
         long total=rows.stream().mapToLong(row->number(row.get("amount"))).sum();
-        return rows.stream().map(row->Map.<String,Object>of("typeId",number(row.get("typeId")),"typeName",row.get("typeName"),
-                "count",number(row.get("amount")),"percentage",total==0?BigDecimal.ZERO:BigDecimal.valueOf(number(row.get("amount"))*100.0/total).setScale(1,RoundingMode.HALF_UP))).toList();
+        return rows.stream().map(row->{var item=new LinkedHashMap<String,Object>();
+            item.put("typeId",number(row.get("typeId")));item.put("typeName",row.get("typeName"));item.put("count",number(row.get("amount")));
+            item.put("percentage",total==0?null:BigDecimal.valueOf(number(row.get("amount"))*100.0/total).setScale(1,RoundingMode.HALF_UP));
+            return (Map<String,Object>)item;}).toList();
     }
     public List<Map<String,Object>> workers(UserVO user) {
         access.requireAdmin(user);
-        return statistics.workerCounts().stream().map(row->Map.<String,Object>of(
-                "workerId",number(row.get("workerId")),"workerName",row.get("workerName"),
-                "completedCount",number(row.get("completedCount")),"activeCount",number(row.get("activeCount")),
-                "averageRating",BigDecimal.valueOf(((Number)row.get("averageRating")).doubleValue()).setScale(1,RoundingMode.HALF_UP))).toList();
+        return statistics.workerCounts().stream().map(row->{var item=new LinkedHashMap<String,Object>();
+            item.put("workerId",number(row.get("workerId")));item.put("workerName",row.get("workerName"));
+            item.put("completedCount",number(row.get("completedCount")));item.put("activeCount",number(row.get("activeCount")));
+            item.put("averageRating",row.get("averageRating")==null?null:
+                    BigDecimal.valueOf(((Number)row.get("averageRating")).doubleValue()).setScale(1,RoundingMode.HALF_UP));
+            return (Map<String,Object>)item;}).toList();
     }
 }

@@ -6,6 +6,7 @@ import com.campus.repair.common.ErrorCode;
 import com.campus.repair.entity.RepairImageEntity;
 import com.campus.repair.mapper.RepairImageMapper;
 import com.campus.repair.mapper.RepairOrderMapper;
+import com.campus.repair.mapper.UserMapper;
 import com.campus.repair.security.UserRole;
 import com.campus.repair.vo.UserVO;
 import java.io.IOException;
@@ -19,28 +20,36 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@lombok.extern.slf4j.Slf4j
 public class ImageService {
     public record ImageFile(byte[] bytes, String contentType) {}
     private final RepairImageMapper images;
     private final RepairOrderMapper orders;
+    private final UserMapper users;
     private final OrderAccessService access;
     private final Clock clock;
     private final Path directory;
 
-    public ImageService(RepairImageMapper images, RepairOrderMapper orders, OrderAccessService access,
+    public ImageService(RepairImageMapper images, RepairOrderMapper orders, UserMapper users, OrderAccessService access,
             Clock clock, @Value("${app.upload.directory:./uploads}") String directory) {
-        this.images = images; this.orders = orders; this.access = access; this.clock = clock;
+        this.images = images; this.orders = orders; this.users=users; this.access = access; this.clock = clock;
         this.directory = Path.of(directory).toAbsolutePath().normalize();
     }
 
+    @Transactional
     public Map<String, String> upload(UserVO user, MultipartFile file) {
         if (user.role() == UserRole.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
         if (user.role() == UserRole.STUDENT) access.student(user);
         else access.requireAvailable(access.worker(user));
         var encoded = ImageCodec.encode(file);
+        users.lockById(user.id());
+        if(images.unboundCount(user.id())>=10)throw new BusinessException(ErrorCode.UPLOAD_LIMIT);
         var image = new RepairImageEntity();
         image.setId(UUID.randomUUID().toString()); image.setOwnerId(user.id());
         image.setContentType(encoded.contentType());
@@ -51,6 +60,14 @@ public class ImageService {
             Files.write(path, encoded.bytes(), StandardOpenOption.CREATE_NEW);
             try { images.insert(image); }
             catch (RuntimeException exception) { Files.deleteIfExists(path); throw exception; }
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) {
+                        try { Files.deleteIfExists(path); }
+                        catch (IOException failure) { log.warn("Rolled-back upload cleanup failed id={} reason={}",image.getId(),failure.getClass().getSimpleName()); }
+                    }
+                }
+            });
         } catch (IOException exception) { throw new BusinessException(ErrorCode.INTERNAL_ERROR); }
         return Map.of("url", "/api/images/" + image.getId());
     }

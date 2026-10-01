@@ -44,7 +44,7 @@ public class DispatchAlgorithm {
         String reason = String.format(Locale.ROOT,
                 "技能%s（故障：%s；类别说明：%s；技能：%s）；%s；当前任务%d，负载分%.2f；%s；坐标：订单(%s,%s)，维修员(%s,%s)。权重40%%/30%%/20%%/10%%",
                 skillScore == 100 ? "匹配" : skillScore == 70 ? "综合维修" : skillScore == 50 ? "类别不确定" : "不匹配",
-                type, input.description(), skill, distance == null ? "坐标缺失或无效，距离分0" : String.format(Locale.ROOT,"距离%.6f公里，距离分%.2f",distance,distanceScore),
+                type, brief(input.description()), skill, distance == null ? "坐标缺失或无效，距离分0" : String.format(Locale.ROOT,"距离%.6f公里，距离分%.2f",distance,distanceScore),
                 input.activeTaskCount(), loadScore,
                 input.rating() == 0 ? "无历史评价，中性50分" : String.format(Locale.ROOT,"历史评价%.2f/5",input.rating()),
                 input.orderLongitude(), input.orderLatitude(), input.workerLongitude(), input.workerLatitude());
@@ -53,6 +53,10 @@ public class DispatchAlgorithm {
     }
     private static boolean containsAny(String value, List<String> words) {
         return value != null && words.stream().anyMatch(value::contains);
+    }
+    private static String brief(String value){
+        if(value==null)return "";
+        return value.codePointCount(0,value.length())>120?value.substring(0,value.offsetByCodePoints(0,120))+"…":value;
     }
     private static BigDecimal decimal(double value) { return BigDecimal.valueOf(value).setScale(2,RoundingMode.HALF_UP); }
     public static boolean validCoordinate(Double longitude, Double latitude) {

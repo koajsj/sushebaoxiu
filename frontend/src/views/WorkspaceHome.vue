@@ -20,7 +20,7 @@ onMounted(load)
 onBeforeUnmount(()=>{revision++})
 </script>
 <template><section class="business-page home-page">
-  <header class="page-heading"><div><p class="eyebrow">{{ role==='student'?'CAMPUS CARE':'CAMPUS SERVICE' }} · {{ auth.user?.realName }}</p><h1>{{ role==='student'?'今天，让校园生活更顺畅。':'维修工作台' }}</h1><p>{{ role==='student'?'从提交到完成，每一步都清晰可见。':'每一项维修，都让校园更好一点。' }}</p></div>
+  <header class="page-heading"><div><p class="eyebrow">{{ role==='student'?'我的校园服务':'今日维修任务' }} · {{ auth.user?.realName }}</p><h1>{{ role==='student'?'今天，让校园生活更顺畅。':'维修工作台' }}</h1><p>{{ role==='student'?'从提交到完成，每一步都清晰可见。':'每一项维修，都让校园更好一点。' }}</p></div>
     <RouterLink class="primary-button" :to="role==='student'?'/student/orders/new':'/worker/orders'">{{ role==='student'?'提交报修':'查看我的任务' }} <span aria-hidden="true">↗</span></RouterLink>
   </header>
   <div v-if="error" class="notice error" role="alert">{{ error }} <button class="text-button" @click="load">重新加载</button></div>

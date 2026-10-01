@@ -30,6 +30,8 @@ public class RepairOrderEntity {
     @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private java.time.LocalDateTime responseDueTime;
     @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private java.time.LocalDateTime startDueTime;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private java.time.LocalDateTime repairDueTime;
     @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private String overdueType;
@@ -41,4 +43,6 @@ public class RepairOrderEntity {
     @com.baomidou.mybatisplus.annotation.TableField(updateStrategy=com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
     private String appointmentReason;
     private Integer appointmentVersion = 0;
+    private String requestKey;
+    private String requestHash;
 }

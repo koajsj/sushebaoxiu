@@ -8,4 +8,5 @@ public record CreateOrderRequest(@NotNull @Positive Long typeId,
         @Size(max=100) String imageUrl,
         @NotNull @Positive Long buildingId,
         @NotBlank @Size(max=30) String roomNo,
-        @NotBlank @Pattern(regexp="LOW|NORMAL|HIGH") String priority) {}
+        @NotBlank @Pattern(regexp="LOW|NORMAL|HIGH") String priority,
+        @Pattern(regexp="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}") String requestKey) {}

@@ -48,7 +48,7 @@ public class OrderWorkflowService {
     }
     private void clearTiming(RepairOrderEntity order) {
         order.setAssignedTime(null);order.setAcceptedTime(null);order.setStartedTime(null);
-        order.setResponseDueTime(null);order.setRepairDueTime(null);order.setOverdueType(null);clearAppointment(order);
+        order.setResponseDueTime(null);order.setStartDueTime(null);order.setRepairDueTime(null);order.setOverdueType(null);clearAppointment(order);
     }
     public void assigned(RepairOrderEntity order,UserVO user,DispatchRecordEntity smartRecord) {
         order.setDispatchRound(order.getDispatchRound()+1);clearTiming(order);
@@ -64,7 +64,7 @@ public class OrderWorkflowService {
     public void accepted(RepairOrderEntity order,UserVO user) {
         if(order.getAcceptedTime()!=null||!Set.of("WAIT_ASSIGN","ASSIGNED").contains(order.getStatus()))
             throw new BusinessException(ErrorCode.CONFLICT);
-        order.setAcceptedTime(now());order.setResponseDueTime(null);order.setOverdueType(null);order.setStatus("ASSIGNED");
+        order.setAcceptedTime(now());order.setResponseDueTime(null);order.setStartDueTime(startDeadline(order));order.setOverdueType(null);order.setStatus("ASSIGNED");
         dispatches.update(null,new LambdaUpdateWrapper<DispatchRecordEntity>().eq(DispatchRecordEntity::getOrderId,order.getId())
                 .eq(DispatchRecordEntity::getRoundNo,order.getDispatchRound()).eq(DispatchRecordEntity::getConfirmed,true)
                 .eq(DispatchRecordEntity::getDecision,"ASSIGNED").set(DispatchRecordEntity::getDecision,"ACCEPTED")
@@ -74,7 +74,13 @@ public class OrderWorkflowService {
     public void started(RepairOrderEntity order) {
         if(order.getAcceptedTime()==null)throw new BusinessException(ErrorCode.CONFLICT);
         order.setStartedTime(now());order.setRepairDueTime(now().plus(sla.forPriority(order.getPriority()).getRepair()));
-        order.setResponseDueTime(null);order.setOverdueType(null);
+        order.setResponseDueTime(null);order.setStartDueTime(null);order.setOverdueType(null);
+    }
+    private LocalDateTime startDeadline(RepairOrderEntity order) {
+        var base=order.getAcceptedTime();
+        if("ACCEPTED".equals(order.getAppointmentStatus())&&order.getAppointmentStart()!=null
+                &&order.getAppointmentStart().isAfter(base))base=order.getAppointmentStart();
+        return base.plus(sla.forPriority(order.getPriority()).getStart());
     }
     @Transactional
     public void rejectAudit(UserVO user,long id,String reason) {
@@ -120,7 +126,8 @@ public class OrderWorkflowService {
                 .set(DispatchRecordEntity::getDecision,"REWORK"));
         order.setRepairRound(order.getRepairRound()+1);clearTiming(order);
         if("ORIGINAL".equals(mode)) {
-            order.setStatus("ASSIGNED");order.setAcceptedTime(now());order.setAssignedTime(now());save(order);
+            order.setStatus("ASSIGNED");order.setAcceptedTime(now());order.setAssignedTime(now());
+            order.setStartDueTime(startDeadline(order));save(order);
             emit(order,user,"REWORK_ORIGINAL","原维修员 #"+previousWorker+" 继续返工 · 第"+order.getRepairRound()+"次维修");
         } else {
             order.setStatus("WAIT_ASSIGN");emit(order,user,"REWORK_REDISPATCH","原维修员 #"+previousWorker+"，安排重新派单 · 第"+order.getRepairRound()+"次维修");
@@ -134,8 +141,11 @@ public class OrderWorkflowService {
         if(!Objects.equals(order.getAppointmentVersion(),input.version()))throw new BusinessException(ErrorCode.CONFLICT);
         if(!input.start().isAfter(now())||!input.end().isAfter(input.start())||Duration.between(input.start(),input.end()).compareTo(Duration.ofHours(24))>0)
             throw new BusinessException(ErrorCode.BAD_REQUEST);
+        if(orders.appointmentConflicts(order.getWorkerId(),id,input.start(),input.end())>0)
+            throw new BusinessException(ErrorCode.APPOINTMENT_CONFLICT);
         order.setAppointmentStart(input.start());order.setAppointmentEnd(input.end());order.setAppointmentStatus("PROPOSED");
-        order.setAppointmentReason(null);order.setAppointmentVersion(order.getAppointmentVersion()+1);save(order);
+        order.setAppointmentReason(null);order.setAppointmentVersion(order.getAppointmentVersion()+1);
+        if("ASSIGNED".equals(order.getStatus()))order.setStartDueTime(startDeadline(order));save(order);
         emit(order,user,"APPOINTMENT_PROPOSE",input.start()+" 至 "+input.end()+"（校园时间）");
     }
     @Transactional
@@ -144,9 +154,37 @@ public class OrderWorkflowService {
         if(!Set.of("ASSIGNED","PROCESSING").contains(order.getStatus())||!"PROPOSED".equals(order.getAppointmentStatus())
                 ||!Objects.equals(order.getAppointmentVersion(),input.version())||!order.getAppointmentEnd().isAfter(now()))throw new BusinessException(ErrorCode.CONFLICT);
         if(!input.accepted()&&(input.reason()==null||input.reason().isBlank()))throw new BusinessException(ErrorCode.BAD_REQUEST);
+        if(input.accepted()) {
+            workers.lockById(order.getWorkerId());
+            if(orders.appointmentConflicts(order.getWorkerId(),id,order.getAppointmentStart(),order.getAppointmentEnd())>0)
+                throw new BusinessException(ErrorCode.APPOINTMENT_CONFLICT);
+        }
         order.setAppointmentStatus(input.accepted()?"ACCEPTED":"REJECTED");order.setAppointmentReason(input.accepted()?null:input.reason().strip());
+        if("ASSIGNED".equals(order.getStatus()))order.setStartDueTime(startDeadline(order));
         order.setAppointmentVersion(order.getAppointmentVersion()+1);save(order);
         emit(order,user,input.accepted()?"APPOINTMENT_ACCEPT":"APPOINTMENT_REJECT",input.accepted()?"学生确认预约时间":input.reason().strip());
+    }
+    @Transactional
+    public void recall(UserVO user,long id,RecallRequest input) {
+        access.requireAdmin(user);var order=locked(id);
+        if(order.getWorkerId()==null||!Set.of("WAIT_ASSIGN","ASSIGNED","PROCESSING").contains(order.getStatus()))
+            throw new BusinessException(ErrorCode.CONFLICT);
+        if(!OrderPhase.of(order).name().equals(input.expectedPhase())||
+                !order.getDispatchRound().equals(input.expectedDispatchRound()))
+            throw new BusinessException(ErrorCode.CONFLICT);
+        boolean processing="PROCESSING".equals(order.getStatus());
+        if(processing&&!input.confirmProcessing())throw new BusinessException(ErrorCode.CONFLICT);
+        String previous=order.getStatus();
+        dispatches.update(null,new LambdaUpdateWrapper<DispatchRecordEntity>()
+                .eq(DispatchRecordEntity::getOrderId,id).eq(DispatchRecordEntity::getRoundNo,order.getDispatchRound())
+                .eq(DispatchRecordEntity::getConfirmed,true)
+                .set(DispatchRecordEntity::getDecision,"RECALLED")
+                .set(DispatchRecordEntity::getRejectReason,input.reason().strip())
+                .set(DispatchRecordEntity::getResponseTime,now()));
+        order.setStatus("WAIT_ASSIGN");
+        emit(order,user,"RECALL",previous+" · "+input.reason().strip());
+        if(processing)order.setRepairRound(order.getRepairRound()+1);
+        order.setWorkerId(null);clearTiming(order);save(order);
     }
     public List<Map<String,Object>> history(long id) {
         var rows=dispatches.selectList(new LambdaQueryWrapper<DispatchRecordEntity>().eq(DispatchRecordEntity::getOrderId,id)

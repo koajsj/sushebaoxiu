@@ -53,6 +53,7 @@ async function signOut() {
         <ElMenuItem v-if="props.role === 'admin'" index="/admin/dispatch" title="智能派单">{{ ui.navigationCollapsed?'派单':'智能派单' }}</ElMenuItem>
         <ElMenuItem v-if="props.role === 'admin'" index="/admin/dashboard" title="数据驾驶舱">{{ ui.navigationCollapsed?'概览':'数据驾驶舱' }}</ElMenuItem>
         <ElMenuItem v-if="props.role === 'admin'" index="/admin/map" title="校园任务地图">{{ ui.navigationCollapsed?'地图':'校园任务地图' }}</ElMenuItem>
+        <ElMenuItem v-if="props.role === 'admin'" index="/admin/manage" title="基础资料维护">{{ ui.navigationCollapsed?'维护':'基础资料维护' }}</ElMenuItem>
       </ElMenu>
       <p class="sidebar-note">{{ ui.navigationCollapsed ? '校园' : '让每一份校园关怀，都有回应。' }}</p>
     </aside>
@@ -68,6 +69,7 @@ async function signOut() {
           <NotificationPanel />
           <span class="user-avatar" aria-hidden="true">{{ auth.user?.realName.slice(0, 1) || 'C' }}</span>
           <div class="user-copy"><strong>{{ auth.user?.realName }}</strong><span>{{ roleNames[props.role] }}</span></div>
+          <RouterLink class="text-button account-settings-link" :to="`/${props.role}/settings/password`">修改密码</RouterLink>
           <ElButton class="signout-button" text :loading="exiting" :disabled="exiting || !auth.authenticated" @click="signOut">退出登录</ElButton>
         </div>
       </header>

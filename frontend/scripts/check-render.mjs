@@ -18,7 +18,7 @@ try {
   const cases = [
     ['/', '欢迎回来', null], ['/login', '登录你的校园服务账号', null],
     ['/student', '今天，让校园生活更顺畅。', 'STUDENT'], ['/worker', '维修工作台', 'WORKER'],
-    ['/admin', '工单管理', 'ADMIN'], ['/admin/dispatch', '智能派单', 'ADMIN'], ['/admin/map', '校园任务地图', 'ADMIN'], ['/admin/dashboard', '校园服务驾驶舱', 'ADMIN'], ['/student/orders/new', '选择故障类型', 'STUDENT'], ['/student/orders', '我的报修', 'STUDENT'],
+    ['/admin', '工单管理', 'ADMIN'], ['/admin/dispatch', '智能派单', 'ADMIN'], ['/admin/map', '校园任务地图', 'ADMIN'], ['/admin/dashboard', '校园服务驾驶舱', 'ADMIN'], ['/admin/manage', '基础资料维护', 'ADMIN'], ['/student/settings/password', '修改密码', 'STUDENT'], ['/student/orders/new', '选择故障类型', 'STUDENT'], ['/student/orders', '我的报修', 'STUDENT'],
     ['/worker/orders', '我的任务', 'WORKER'], ['/student/orders/1', '订单详情', 'STUDENT'],
     ['/worker/orders/1', '订单详情', 'WORKER'], ['/admin/orders/1', '订单详情', 'ADMIN'],
     ['/student/orders/1/messages', '维修沟通', 'STUDENT'], ['/worker/orders/1/messages', '维修沟通', 'WORKER'], ['/admin/orders/1/messages', '维修沟通', 'ADMIN'],

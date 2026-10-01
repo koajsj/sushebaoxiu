@@ -9,6 +9,7 @@ import com.campus.repair.entity.RepairImageEntity;
 import com.campus.repair.entity.RepairOrderEntity;
 import com.campus.repair.mapper.RepairImageMapper;
 import com.campus.repair.mapper.RepairOrderMapper;
+import com.campus.repair.mapper.UserMapper;
 import com.campus.repair.security.UserRole;
 import com.campus.repair.vo.UserVO;
 import java.nio.file.Files;
@@ -31,7 +32,7 @@ class ImageServiceTest {
         when(images.selectById(image.getId())).thenReturn(image);
         when(orders.selectById(11L)).thenReturn(order);
         doThrow(new BusinessException(ErrorCode.NOT_FOUND)).when(access).requireView(uploader,order);
-        var service = new ImageService(images,orders,access,Clock.systemUTC(),directory.toString());
+        var service = new ImageService(images,orders,mock(UserMapper.class),access,Clock.systemUTC(),directory.toString());
 
         var failure = assertThrows(BusinessException.class,()->service.read(uploader,image.getId()));
         assertEquals(ErrorCode.NOT_FOUND,failure.getErrorCode());
@@ -44,7 +45,7 @@ class ImageServiceTest {
         var image = image(null);
         Files.write(directory.resolve(image.getId()),new byte[]{1,2,3});
         when(images.selectById(image.getId())).thenReturn(image);
-        var service = new ImageService(images,orders,access,Clock.systemUTC(),directory.toString());
+        var service = new ImageService(images,orders,mock(UserMapper.class),access,Clock.systemUTC(),directory.toString());
 
         assertArrayEquals(new byte[]{1,2,3},service.read(
                 new UserVO(2,"worker001","维修员",null,UserRole.WORKER),image.getId()).bytes());

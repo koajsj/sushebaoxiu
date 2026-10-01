@@ -17,7 +17,7 @@ export async function getWorkers() { return unwrap((await http.get<ApiResult<Wor
 export async function actOnOrder(role: Role, id: number, action: 'audit'|'assign'|'accept'|'start'|'finish'|'confirm', workerId?: number) {
   await http.put(`/${role}/orders/${id}/${action}`, workerId ? {workerId} : undefined)
 }
-export async function addRepairRecord(orderId: number, content: string, imageUrl?: string) { await http.post('/worker/repair-record', {orderId, content, imageUrl}) }
+export async function addRepairRecord(orderId: number, content: string, requestKey:string, imageUrl?: string) { await http.post('/worker/repair-record', {orderId, content, imageUrl, requestKey}) }
 export async function evaluateOrder(orderId: number, score: number, content: string) { await http.post('/student/evaluation', {orderId, score, content}) }
 export async function uploadImage(file: File) {
   const data = new FormData(); data.append('file', file)

@@ -16,8 +16,8 @@ try{
  // Fetch adapter matches browser Blob/FormData semantics in this Node-only check.
  http.defaults.adapter='fetch'
  http.interceptors.request.use(config=>{if(config.data instanceof FormData)config.headers.setContentType(false);return config})
- http.defaults.baseURL=process.env.CHECK_BACKEND_URL || 'http://127.0.0.1:18085/api'
- assert.equal(http.defaults.baseURL,'http://127.0.0.1:18085/api','isolated endpoint required before mutations')
+ http.defaults.baseURL=process.env.CHECK_BACKEND_URL || 'http://127.0.0.1:18086/api'
+ assert.equal(http.defaults.baseURL,'http://127.0.0.1:18086/api','isolated endpoint required before mutations')
  const api=await server.ssrLoadModule('/src/api/repair.ts')
  const dispatch=await server.ssrLoadModule('/src/api/dispatch.ts')
  const phase5=await server.ssrLoadModule('/src/api/phase5.ts')
@@ -38,7 +38,7 @@ try{
  const imageUrl=await api.uploadImage(new File([png],'photo.png',{type:'image/png'}))
  assert.match(imageUrl,/^\/api\/images\//)
  const blob=await api.loadImage(imageUrl);assert.ok(blob.size>0);pass('frontend uploads and privately reads a real image')
- const order=await api.createOrder({typeId:catalog.types[0].id,title:'前端验收：水龙头漏水',description:'连接处持续滴水，请安排检修。',buildingId:catalog.buildings[0].id,roomNo:'301',priority:'NORMAL',imageUrl})
+ const order=await api.createOrder({typeId:catalog.types[0].id,title:'前端验收：水龙头漏水',description:'连接处持续滴水，请安排检修。',buildingId:catalog.buildings[0].id,roomNo:'301',priority:'NORMAL',imageUrl,requestKey:crypto.randomUUID()})
  assert.equal(order.status,'WAIT_AUDIT');pass('frontend submits WAIT_AUDIT order')
  await router.push('/student/orders/'+order.id)
  assert.equal(router.currentRoute.value.meta.role,'student')
@@ -47,7 +47,7 @@ try{
  await api.actOnOrder('admin',order.id,'audit')
  const workers=await api.getWorkers(),worker=workers.find(w=>w.username==='worker001')
  assert.ok(worker)
- const recommendations=await dispatch.getRecommendations(order.id)
+ const recommendations=await dispatch.generateRecommendations(order.id)
  const selected=recommendations.find(r=>r.workerId===worker.id);assert.ok(selected)
  await dispatch.confirmDispatch(order.id,selected)
  assert.equal((await api.getOrder(order.id)).order.workerId,worker.id);assert.equal((await api.getOrder(order.id)).order.status,'ASSIGNED');pass('admin audit and explainable smart assignment')
@@ -70,7 +70,7 @@ try{
  await api.actOnOrder('worker',order.id,'accept')
  await api.actOnOrder('worker',order.id,'start')
  const repairImage=await api.uploadImage(new File([png],'result.png',{type:'image/png'}))
- await api.addRepairRecord(order.id,'已更换水龙头密封垫，确认无漏水。',repairImage)
+ await api.addRepairRecord(order.id,'已更换水龙头密封垫，确认无漏水。',crypto.randomUUID(),repairImage)
  await api.actOnOrder('worker',order.id,'finish')
  assert.equal((await api.getOrder(order.id)).order.status,'WAIT_CONFIRM');pass('worker starts assigned task, records with photo, finishes')
  const {auth}=await session('student')

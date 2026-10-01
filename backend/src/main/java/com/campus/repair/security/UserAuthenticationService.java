@@ -18,23 +18,29 @@ public class UserAuthenticationService {
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
     private final String dummyPassword;
+    private final LoginAttemptGuard attempts;
 
-    public UserAuthenticationService(UserService users, JwtUtils jwtUtils, PasswordEncoder passwordEncoder) {
+    public UserAuthenticationService(UserService users, JwtUtils jwtUtils, PasswordEncoder passwordEncoder,LoginAttemptGuard attempts) {
         this.users = users;
         this.jwtUtils = jwtUtils;
         this.passwordEncoder = passwordEncoder;
+        this.attempts=attempts;
         dummyPassword = passwordEncoder.encode("not-a-real-account-password");
     }
 
-    public AuthVO login(LoginRequest request) {
+    public AuthVO login(LoginRequest request,String remoteAddress) {
+        attempts.check(request.getUsername(),remoteAddress);
         if (request.getPassword().getBytes(StandardCharsets.UTF_8).length > 72) {
+            attempts.failed(request.getUsername(),remoteAddress);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
         UserEntity user = users.findByUsername(request.getUsername());
         boolean matches = passwordEncoder.matches(request.getPassword(), user == null ? dummyPassword : user.getPassword());
         if (!matches || !isActive(user)) {
+            attempts.failed(request.getUsername(),remoteAddress);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+        attempts.success(request.getUsername(),remoteAddress);
         Jwt jwt = jwtUtils.generate(user);
         return new AuthVO(jwt.getTokenValue(), jwt.getExpiresAt(), UserVO.from(user), user.getRole());
     }
