@@ -12,7 +12,7 @@ const current = computed(() => props.orders.find(order => !['FINISHED', 'COMMENT
 
 <template>
   <section class="business-page student-home">
-    <CampusHero class="student-welcome" label="学生校园服务欢迎区域" asset="entrance"><p>你好，{{ name }}</p><h1>校园维修服务</h1><p>提交设施问题，跟进维修进度，确认维修结果。</p></CampusHero>
+    <CampusHero class="student-welcome" label="学生校园服务欢迎区域" asset="courtyard"><p>你好，{{ name }}</p><h1>校园维修服务</h1><p>提交设施问题，跟进维修进度，确认维修结果。</p></CampusHero>
     <div v-if="error" class="notice error" role="alert">{{ error }} <button class="text-button" :disabled="loading" @click="$emit('retry')">重新读取维修进度</button></div>
     <section class="student-current-section" :aria-busy="loading"><div class="section-heading"><h2>我的维修进展</h2><span v-if="!loading && summary" class="muted">{{ summary.pending }} 份待审核 / 接单 / 开工 · {{ summary.active }} 份维修 / 验收 / 返工中</span></div>
       <div v-if="loading" class="student-loading" role="status"><span class="student-skeleton" aria-hidden="true"/><p>正在读取最新进展…</p></div>

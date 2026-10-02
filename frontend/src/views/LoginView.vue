@@ -9,6 +9,7 @@ import 'element-plus/theme-chalk/el-form.css'
 import 'element-plus/theme-chalk/el-form-item.css'
 import 'element-plus/theme-chalk/el-input.css'
 import BrandMark from '../components/BrandMark.vue'
+import BrandIcon from '../components/BrandIcon.vue'
 import CampusHero from '../components/CampusHero.vue'
 import { useAuthStore } from '../store/auth'
 
@@ -52,7 +53,7 @@ async function submit() {
         </div>
       </CampusHero>
       <section class="login-card" aria-labelledby="login-title">
-        <div class="login-card-heading"><span class="login-monogram" aria-hidden="true">C</span>
+        <div class="login-card-heading"><BrandIcon class="login-logo" />
           <h2 id="login-title">欢迎回来</h2><p>登录你的校园服务账号</p></div>
         <ElForm ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
           <ElFormItem label="账号" prop="username">

@@ -18,4 +18,4 @@ onMounted(()=>{mounted=true;shown.value=props.value===null?null:0;animate()})
 watch(()=>props.value,()=>{if(mounted)animate()})
 onBeforeUnmount(()=>{mounted=false;cancelAnimationFrame(frame)})
 </script>
-<template><article class="dashboard-card" :class="{'is-empty':value===null}" :style="{'--entry-delay':`${Math.min(index,3)*35}ms`}"><span>{{ label }}</span><strong :aria-label="value===null?'暂无数据':`${value}${suffix||''}`"><span aria-hidden="true">{{ shown===null?'暂无数据':shown }}<small v-if="shown!==null">{{ suffix }}</small></span></strong><p>{{ hint }}</p></article></template>
+<template><article class="dashboard-card" :class="{'is-empty':value===null}"><span>{{ label }}</span><strong :aria-label="value===null?'暂无数据':`${value}${suffix||''}`"><span aria-hidden="true">{{ shown===null?'暂无数据':shown }}<small v-if="shown!==null">{{ suffix }}</small></span></strong><p>{{ hint }}</p></article></template>

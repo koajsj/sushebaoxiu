@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory } from 'vue-router'
-import { createSSRApp, h } from 'vue'
+import { createSSRApp, createRenderer, h, reactive, ssrContextKey } from 'vue'
 import { renderToString } from 'vue/server-renderer'
 
 // Calls actual component handlers with controlled response ordering; no browser/DOM acceptance.
@@ -40,6 +40,66 @@ try {
     catch (error) { failures++; console.error('FAIL', name, error.message) }
     finally { delete globalThis.document }
   }
+  const renderer = createRenderer({
+    createElement: () => ({}), createText: () => ({}), createComment: () => ({}),
+    insert() {}, remove() {}, setElementText() {}, setText() {}, setComment() {}, patchProp() {},
+    parentNode: () => null, nextSibling: () => null,
+  })
+  await check('late upload cannot attach an old-session photo to the current draft', async () => {
+    const pinia = createPinia(); setActivePinia(pinia)
+    const auth = useAuthStore(pinia)
+    auth.user = { id: 1, username: 'fixture', realName: '验证账号', role: 'WORKER' }
+    auth.token = 'old-session'; auth.initialized = true
+    const { default: Component } = await server.ssrLoadModule('/src/components/ImageUpload.vue')
+    const props = reactive({ modelValue: '', contextKey: 99 }), events = []
+    let upload
+    const app = renderer.createApp({ setup() {
+      upload = Component.setup(props, { expose() {}, emit: (name, value) => events.push([name, value]) })
+      return () => h('div')
+    } }).use(pinia)
+    app.provide(ssrContextKey, { modules: new Set() })
+    app.mount({})
+    const gate = deferred(), started = deferred()
+    http.defaults.adapter = async config => {
+      started.resolve(); await gate.promise
+      return response(config, { url: '/api/images/11111111-1111-1111-1111-111111111111' })
+    }
+    const pending = upload.choose({ target: { files: [new File(['fixture'], 'photo.png', { type: 'image/png' })], value: 'photo.png' } })
+    await started.promise
+    auth.token = 'new-session'
+    gate.resolve(); await pending
+    app.unmount()
+    assert.equal(events.some(([name]) => name === 'update:modelValue'), false, 'old identity must not update the draft')
+    assert.equal(upload.uploading.value, false)
+    assert.equal(upload.error.value, '')
+  })
+  await check('late upload cannot attach a photo after the order context changes', async () => {
+    const pinia = createPinia(); setActivePinia(pinia)
+    const auth = useAuthStore(pinia)
+    auth.user = { id: 1, username: 'fixture', realName: '验证账号', role: 'WORKER' }
+    auth.token = 'fixture'; auth.initialized = true
+    const { default: Component } = await server.ssrLoadModule('/src/components/ImageUpload.vue')
+    const props = reactive({ modelValue: '', contextKey: '99:1' }), events = []
+    let upload
+    const app = renderer.createApp({ setup() {
+      upload = Component.setup(props, { expose() {}, emit: (name, value) => events.push([name, value]) })
+      return () => h('div')
+    } }).use(pinia)
+    app.provide(ssrContextKey, { modules: new Set() })
+    app.mount({})
+    const gate = deferred(), started = deferred()
+    http.defaults.adapter = async config => {
+      started.resolve(); await gate.promise
+      return response(config, { url: '/api/images/11111111-1111-1111-1111-111111111111' })
+    }
+    const pending = upload.choose({ target: { files: [new File(['fixture'], 'photo.png', { type: 'image/png' })], value: 'photo.png' } })
+    await started.promise
+    props.contextKey = '100:2'
+    gate.resolve(); await pending
+    app.unmount()
+    assert.equal(events.some(([name]) => name === 'update:modelValue'), false, 'old order/round must not update the draft')
+    assert.equal(upload.uploading.value, false)
+  })
   await check('manual reload cannot permanently block chat polling', async () => {
     const chat = await state('/src/views/OrderChatView.vue')
     globalThis.document = { hidden: false }

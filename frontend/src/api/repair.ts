@@ -15,9 +15,9 @@ export async function actOnOrder(role: Role, id: number, action: 'audit'|'assign
 }
 export async function addRepairRecord(orderId: number, content: string, requestKey:string, imageUrl?: string) { await http.post('/worker/repair-record', {orderId, content, imageUrl, requestKey}) }
 export async function evaluateOrder(orderId: number, score: number, content: string) { await http.post('/student/evaluation', {orderId, score, content}) }
-export async function uploadImage(file: File) {
+export async function uploadImage(file: File, signal?:AbortSignal) {
   const data = new FormData(); data.append('file', file)
-  return unwrap((await http.post<ApiResult<{url:string}>>('/images', data)).data).url
+  return unwrap((await http.post<ApiResult<{url:string}>>('/images', data, { signal })).data).url
 }
 export async function loadImage(url: string): Promise<Blob> {
   if (!/^\/api\/images\/[0-9a-f-]{36}$/.test(url)) throw new ApiError('图片地址不可用')

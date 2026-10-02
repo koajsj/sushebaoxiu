@@ -16,7 +16,7 @@ const status = computed(() => props.error ? '数据暂不可用，请重新加�
 
 <template>
   <header class="operations-hero">
-    <CampusHero label="校园维修运营中心欢迎区域" asset="courtyard">
+    <CampusHero label="校园维修运营中心欢迎区域" asset="service">
       <p class="hero-kicker">智慧校园 · 维修服务</p>
       <h1>校园维修运营中心</h1>
       <p class="hero-welcome">{{ name }}，欢迎回来。优先审核新报修，安排维修人员，跟进异常任务。</p>
@@ -41,10 +41,10 @@ const status = computed(() => props.error ? '数据暂不可用，请重新加�
 .hero-kicker { color: var(--hero-muted); font-size: var(--text-caption); font-weight: 500; letter-spacing: .08em; margin-bottom: var(--space-3); }
 h1 { font-size: var(--text-page); font-weight: 600; line-height: 1.25; letter-spacing: -.035em; text-wrap: balance; }
 .hero-welcome { color: var(--hero-muted); font-size: var(--text-body); line-height: 1.8; margin-top: var(--space-3); }
-.hero-context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); color: var(--hero-muted); font-size: var(--text-caption); margin-top: var(--space-5); }
+.hero-context { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-5); color: var(--hero-muted); font-size: var(--text-caption); margin-top: var(--space-4); }
 .hero-status { display: flex; align-items: center; gap: var(--space-2); }
 .hero-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-.hero-toolbar { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-top: var(--space-4); }
+.hero-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4); margin-top: var(--space-4); }
 .update-caption { color: var(--muted); font-size: var(--text-caption); line-height: 1.6; }
 .hero-actions { display: flex; align-items: flex-start; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-2); }
 @media (max-width: 740px) { .hero-toolbar { align-items: flex-start; flex-direction: column; } .hero-actions { justify-content: flex-start; width: 100%; } .hero-context { gap: var(--space-3); } }

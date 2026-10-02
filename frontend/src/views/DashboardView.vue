@@ -94,11 +94,6 @@ onBeforeUnmount(() => { revision++ })
         <p>平均维修时间 <strong>{{ overview.averageRepairHours === null ? '暂无数据' : `${overview.averageRepairHours} 小时` }}</strong><small>每轮开工至提交结果</small></p>
       </nav>
 
-      <div class="operations-analysis">
-        <ChartPanel title="维修趋势" description="最近14天 · 报修提交与维修结果提交"><TrendChart :points="trend" /></ChartPanel>
-        <ChartPanel title="故障类型分析" description="全量工单 · 按故障类型占比"><FaultChart :types="types" /></ChartPanel>
-      </div>
-
       <section class="operations-active" aria-labelledby="active-repairs-title">
         <header class="operations-section-heading"><div><p class="eyebrow">正在发生</p><h2 id="active-repairs-title">当前维修任务 <span v-if="!listsLoading && !activeError">{{ activeTotal }}</span></h2><p>已开始维修的工单 · 刷新时快照，按提交时间倒序展示最多4项</p></div><RouterLink class="text-button" to="/admin/orders?phase=PROCESSING">全部维修任务 ↗</RouterLink></header>
         <p v-if="listsLoading" class="dashboard-section-message" role="status">正在更新维修任务…</p>
@@ -106,6 +101,11 @@ onBeforeUnmount(() => { revision++ })
         <div v-else-if="activeRepairs.length" class="active-repairs-grid"><ActiveRepairCard v-for="order in activeRepairs" :key="order.id" :order="order" /></div>
         <div v-else class="dashboard-section-message"><strong>当前暂无正在维修的工单</strong><p>维修人员开始处理后，任务会显示在这里。</p></div>
       </section>
+
+      <div class="operations-analysis">
+        <ChartPanel title="维修趋势" description="最近14天 · 报修提交与维修结果提交"><TrendChart :points="trend" /></ChartPanel>
+        <ChartPanel title="故障类型分析" description="全量工单 · 按故障类型占比"><FaultChart :types="types" /></ChartPanel>
+      </div>
 
       <div class="operations-bottom">
         <ChartPanel title="最新工单" description="最近提交的5项 · 查看下一步处理"><template #action><RouterLink class="text-button" to="/admin/orders">全部工单 ↗</RouterLink></template>
@@ -124,25 +124,24 @@ onBeforeUnmount(() => { revision++ })
 </template>
 
 <style scoped>
-.operations-dashboard { display: grid; gap: var(--space-5); min-width: 0; max-width: var(--page-max); }
-.operations-dashboard > :deep(.operations-hero) { animation: dashboard-enter var(--motion-enter) var(--ease-out) both; }
-.operations-metrics.dashboard-cards { margin: 0; padding: var(--space-2); gap: var(--space-2); border-radius: var(--radius-lg); box-shadow: var(--surface-shadow); }
-.operations-metrics :deep(.dashboard-card) { min-height: 176px; padding: var(--space-5); animation: none; transition: background var(--motion-fast); }
+.operations-dashboard { display: grid; gap: var(--section-gap); min-width: 0; max-width: var(--page-max); }
+.operations-metrics.dashboard-cards { margin: 0; padding: 0; gap: 0; border-radius: var(--radius); }
+.operations-metrics :deep(.dashboard-card) { min-height: 140px; padding: 22px var(--space-5); transition: background var(--motion-fast); }
 .operations-metrics :deep(.dashboard-card:hover) { background: var(--surface-subtle); }
 .operations-metrics :deep(.dashboard-card > span) { color: var(--ink-secondary); font-weight: 500; font-size: var(--text-support); }
-.operations-metrics :deep(.dashboard-card strong) { font-size: var(--text-number); margin: var(--space-5) 0 var(--space-4); }
+.operations-metrics :deep(.dashboard-card strong) { font-size: var(--text-number); margin: var(--space-4) 0 var(--space-3); }
 .operations-metrics :deep(.dashboard-card.is-empty strong) { font-size: 24px; }
 .operations-metrics :deep(.dashboard-card p) { line-height: 1.7; }
 .operations-metrics :deep(.metric-overdue.has-overdue) { background: var(--danger-soft); }.operations-metrics :deep(.metric-overdue.has-overdue strong) { color: var(--danger); }
 .operations-metrics :deep(.metric-overdue.has-overdue:hover) { background: var(--danger-soft); }
-.operations-attention { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: wrap; padding: 0 var(--space-2); font-size: var(--text-caption); color: var(--muted); }
-.operations-attention > span { font-weight: 500; }.operations-attention a { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-secondary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--surface); transition: background var(--motion-fast), color var(--motion-fast); }
+.operations-attention { display: flex; align-items: center; gap: var(--space-2) var(--space-4); flex-wrap: wrap; padding: 0; font-size: var(--text-support); color: var(--muted); }
+.operations-attention > span { font-weight: 500; }.operations-attention a { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--ink-secondary); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: transparent; transition: background var(--motion-fast), color var(--motion-fast); }
 .operations-attention a:hover { background: var(--accent-soft); color: var(--accent); }.operations-attention a.attention-danger { color: var(--danger); background: var(--danger-soft); }.operations-attention a > span { font-size: 11px; }.operations-attention strong { font-weight: 600; font-variant-numeric: tabular-nums; }
 .operations-attention > p { margin-left: auto; line-height: 1.7; }.operations-attention p strong { color: var(--ink-secondary); margin-left: var(--space-2); }.operations-attention small { display: block; text-align: right; font-size: 11px; }
 .operations-analysis { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--space-5); align-items: stretch; }
-.operations-dashboard :deep(.chart-panel) { min-width: 0; padding: var(--space-5); margin: 0; box-shadow: var(--surface-shadow); }.operations-dashboard :deep(.chart-panel > header) { gap: var(--space-3); margin-bottom: var(--space-5); }.operations-dashboard :deep(.chart-panel h2) { font-size: var(--text-section); font-weight: 600; }.operations-dashboard :deep(.chart-panel header .text-button) { flex-shrink: 0; font-size: var(--text-caption); }
+.operations-dashboard :deep(.chart-panel) { min-width: 0; padding: var(--space-5); margin: 0; box-shadow: none; }.operations-dashboard :deep(.chart-panel > header) { gap: var(--space-3); margin-bottom: var(--space-5); }.operations-dashboard :deep(.chart-panel h2) { font-size: var(--text-section); font-weight: 600; }.operations-dashboard :deep(.chart-panel header .text-button) { flex-shrink: 0; font-size: var(--text-caption); }
 .operations-section-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); }.operations-section-heading .eyebrow { font-size: 11px; color: var(--muted); margin-bottom: var(--space-2); }.operations-section-heading h2 { font-size: var(--text-section); font-weight: 600; letter-spacing: -.025em; }.operations-section-heading h2 > span { display: inline-block; color: var(--muted); font-size: var(--text-support); font-weight: 400; margin-left: var(--space-2); }.operations-section-heading h2 + p { color: var(--muted); font-size: var(--text-caption); line-height: 1.7; margin-top: var(--space-2); }.operations-section-heading a { flex-shrink: 0; font-size: var(--text-caption); }
-.operations-active { padding-top: var(--space-2); }.active-repairs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.operations-active { padding-top: var(--space-4); border-top: 1px solid var(--surface-line); }.active-repairs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
 .operations-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr); gap: var(--space-5); align-items: start; margin-top: var(--space-2); }
 .latest-orders { list-style: none; padding: 0; margin: 0; max-height: 360px; overflow-y: auto; scrollbar-width: thin; }.latest-orders li { border-bottom: 1px solid var(--surface-line); }.latest-orders li:last-child { border: 0; }.latest-orders a { display: block; padding: var(--space-4) var(--space-2); border-radius: var(--radius-sm); transition: background var(--motion-fast); color: var(--ink); }
 .latest-orders a:hover { background: var(--surface-subtle); }
@@ -150,12 +149,9 @@ onBeforeUnmount(() => { revision++ })
 .dashboard-section-message { text-align: center; border-radius: var(--radius); padding: var(--space-7) var(--space-5); background: var(--surface); color: var(--muted); font-size: var(--text-support); line-height: 1.8; }.dashboard-section-message strong { display: block; color: var(--ink-secondary); font-size: var(--text-body); font-weight: 500; }.dashboard-section-message p { margin-top: var(--space-2); font-size: var(--text-caption); }
 .dashboard-load-error { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius); background: var(--danger-soft); color: var(--danger); font-size: var(--text-support); }.dashboard-load-error strong { font-weight: 500; }.dashboard-load-error p { margin-top: var(--space-2); overflow-wrap: anywhere; }
 .dashboard-skeleton { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }.dashboard-skeleton i { display: block; height: 176px; background: var(--surface); border: 1px solid var(--surface-line); border-radius: var(--radius); }
-/* Animate only newly mounted sections; refreshing existing data does not replay entries. */
-.operations-metrics { animation: dashboard-enter var(--motion-enter) 30ms var(--ease-out) both; }.operations-analysis { animation: dashboard-enter var(--motion-enter) 60ms var(--ease-out) both; }.operations-active, .operations-bottom { animation: dashboard-enter var(--motion-enter) 90ms var(--ease-out) both; }
-@keyframes dashboard-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 1280px) { .active-repairs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-bottom { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-bottom > :deep(.dashboard-campus-map) { grid-column: 1 / -1; } }
+@media (max-width: 1500px) { .active-repairs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-bottom { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-bottom > :deep(.dashboard-campus-map) { grid-column: 1 / -1; } }
 @media (max-width: 1000px) { .operations-attention > p { width: 100%; margin-left: 0; }.operations-attention small { display: inline; margin-left: var(--space-3); }.operations-analysis { grid-template-columns: 1fr; } }
-@media (max-width: 740px) { .operations-dashboard { gap: var(--space-5); }.operations-metrics.dashboard-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-metrics :deep(.dashboard-card) { padding: var(--space-4); min-height: 160px; }.operations-metrics :deep(.dashboard-card strong) { font-size: 34px; }.operations-metrics :deep(.dashboard-card.is-empty strong) { font-size: 21px; }.operations-section-heading { align-items: flex-start; flex-direction: column; gap: var(--space-3); }.operations-bottom { grid-template-columns: 1fr; }.dashboard-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); }.dashboard-load-error { align-items: flex-start; flex-direction: column; } }
+@media (max-width: 740px) { .operations-dashboard { gap: var(--space-5); }.operations-metrics.dashboard-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }.operations-metrics :deep(.dashboard-card) { padding: var(--space-4); min-height: 140px; }.operations-metrics :deep(.dashboard-card strong) { font-size: 34px; }.operations-metrics :deep(.dashboard-card.is-empty strong) { font-size: 21px; }.operations-section-heading { align-items: flex-start; flex-direction: column; gap: var(--space-3); }.operations-bottom { grid-template-columns: 1fr; }.dashboard-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); }.dashboard-load-error { align-items: flex-start; flex-direction: column; } }
 @media (max-width: 480px) { .active-repairs-grid { grid-template-columns: 1fr; }.operations-attention { padding: 0; gap: var(--space-2); }.operations-attention > span { width: 100%; }.operations-attention a { padding: var(--space-2); }.operations-attention small { display: block; margin-left: 0; text-align: left; } }
-@media (prefers-reduced-motion: reduce) { .operations-dashboard > :deep(.operations-hero), .operations-metrics, .operations-analysis, .operations-active, .operations-bottom { animation: none; }.operations-metrics :deep(.dashboard-card), .operations-attention a, .latest-orders a { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .operations-metrics :deep(.dashboard-card), .operations-attention a, .latest-orders a { transition: none; } }
 </style>

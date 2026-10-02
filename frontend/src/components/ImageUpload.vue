@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { uploadImage } from '../api/repair'
 import ProtectedImage from './ProtectedImage.vue'
-const props = defineProps<{ modelValue: string; disabled?:boolean }>()
+import { useAuthStore } from '../store/auth'
+const props = defineProps<{ modelValue: string; disabled?:boolean; contextKey?:string|number }>()
 const emit = defineEmits<{ 'update:modelValue': [url:string]; pending: [value:boolean] }>()
+const auth = useAuthStore()
 const uploading = ref(false), error = ref('')
+let revision = 0, controller:AbortController|undefined
+function invalidate() {
+  revision++; controller?.abort(); controller=undefined
+  uploading.value=false; error.value=''; emit('pending',false)
+}
+watch([() => auth.user?.id, () => auth.token, () => props.contextKey], invalidate, { flush:'sync' })
+onBeforeUnmount(invalidate)
 async function choose(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
@@ -12,9 +21,10 @@ async function choose(event: Event) {
   error.value = ''
   if (!['image/png','image/jpeg'].includes(file.type) || file.size > 5*1024*1024) { error.value='请选择5MB以内的PNG或JPEG图片'; input.value=''; return }
   uploading.value=true; emit('pending',true)
-  try { emit('update:modelValue', await uploadImage(file)) }
-  catch (e) { error.value=e instanceof Error ? e.message : '上传失败，请重试' }
-  finally { uploading.value=false; emit('pending',false); input.value='' }
+  const current=++revision; controller=new AbortController()
+  try { const url=await uploadImage(file,controller.signal); if(current===revision)emit('update:modelValue',url) }
+  catch (e) { if(current===revision)error.value=e instanceof Error ? e.message : '上传失败，请重试' }
+  finally { if(current===revision){controller=undefined;uploading.value=false;emit('pending',false)} input.value='' }
 }
 </script>
 <template><div class="image-upload" :aria-busy="uploading">

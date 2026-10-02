@@ -16,7 +16,7 @@
 .map-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;align-items:start}
 .map-layout.has-selection{grid-template-columns:minmax(0,1fr) 280px}
 .map-panel{min-width:0;border:1px solid var(--surface-line);background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;position:relative}
-.map-toolbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;gap:12px;font-size:var(--text-caption)}
+.map-toolbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;gap:12px;font-size:var(--text-body)}
 .map-subtitle{display:block;font-size:var(--text-caption);color:var(--muted);margin-top:6px}
 .map-toolbar>div{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:var(--text-caption);flex-shrink:0}
 .map-toolbar button{min-width:30px;min-height:30px;border:1px solid var(--line);background:var(--surface-subtle);border-radius:8px;padding:5px 7px;font:inherit;font-size:var(--text-caption);color:var(--ink)}
@@ -41,7 +41,7 @@
 .map-legend>span:before{content:'';display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:var(--map-building)}
 .map-legend .legend-order:before{background:var(--map-order)}
 .map-legend .legend-worker:before{background:var(--map-worker)}
-.map-legend small{margin-left:auto;line-height:1.7}
+.map-legend small{margin-left:auto;font-size:var(--text-caption);line-height:1.7}
 .map-asset-error{padding:var(--space-3) var(--space-5);font-size:var(--text-caption);line-height:1.7;color:var(--danger);background:var(--danger-soft)}
 .location-card.detail-surface{padding:26px 22px;min-height:310px}
 .location-card h2{font-size:var(--text-section);line-height:1.5;margin:15px 0;letter-spacing:-.02em;overflow-wrap:anywhere}
@@ -53,11 +53,11 @@
 .map-location-list{font-size:var(--text-caption);color:var(--muted);margin-top:22px}
 .map-location-list summary{cursor:pointer}
 .map-location-list>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px;max-height:300px;overflow:auto}
-.map-location-list button{display:grid;gap:7px;background:var(--surface);border:1px solid var(--surface-line);border-radius:13px;padding:14px;text-align:left;color:var(--ink)}
+.map-location-list button{display:grid;gap:7px;background:var(--surface);border:1px solid var(--surface-line);border-radius:var(--radius-sm);padding:16px;text-align:left;color:var(--ink)}
 .map-location-list button.selected{border-color:var(--accent-line);background:var(--accent-soft)}
 .map-location-list button span,.map-location-list button small{font-size:var(--text-caption);color:var(--muted)}
 .map-location-list button strong{font-size:var(--text-caption);font-weight:500;overflow-wrap:anywhere}
-@media(max-width:1150px){
+@media(max-width:1366px){
 .map-layout,.map-layout.has-selection{grid-template-columns:minmax(0,1fr)}
 .location-card.detail-surface{min-height:0}
 .map-location-list>div{grid-template-columns:repeat(2,minmax(0,1fr))}

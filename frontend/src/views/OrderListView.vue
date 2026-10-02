@@ -34,7 +34,7 @@ onMounted(()=>{void load();if(props.role==='admin')void loadCatalog()})
 watch(()=>[route.query.phase,route.query.overdue],()=>{filters.phase=typeof route.query.phase==='string'?route.query.phase:'';filters.overdue=route.query.overdue==='true';void load(true)})
 onBeforeUnmount(()=>{revision++})
 </script>
-<template><section class="business-page" :class="{'student-order-center':role==='student','worker-task-center':role==='worker'}">
+<template><section class="business-page order-list-page" :class="{'student-order-center':role==='student','worker-task-center':role==='worker'}">
   <header class="page-heading"><div><p class="eyebrow">{{ role==='admin'?'校园服务 · 工单':role==='worker'?'校园维修 · 我的任务':'校园服务 · 我的工单' }}</p><h1>{{ copy.title }}</h1><p>{{ copy.description }}</p></div><RouterLink v-if="role==='student'" class="primary-button" to="/student/orders/new">我要报修 ↗</RouterLink></header>
   <div v-if="catalogError" class="notice error" role="alert">故障类型加载失败：{{ catalogError }} <button class="text-button" @click="loadCatalog">重新加载故障类型</button></div>
   <form class="filter-bar" @submit.prevent="load(true)">

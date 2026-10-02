@@ -68,7 +68,7 @@ async function signOut() {
         </div>
         <div class="user-menu">
           <NotificationPanel ref="notifications" />
-          <span class="user-avatar" aria-hidden="true">{{ auth.user?.realName.slice(0, 1) || 'C' }}</span>
+          <span class="user-avatar" aria-hidden="true">{{ auth.user?.realName.slice(0, 1) || '·' }}</span>
           <div class="user-copy"><strong>{{ auth.user?.realName }}</strong><span>{{ roleNames[props.role] }}</span></div>
           <RouterLink class="text-button account-settings-link" :to="`/${props.role}/settings/password`">账号安全</RouterLink>
           <ElButton class="signout-button" text :loading="exiting" :disabled="exiting || !auth.authenticated" @click="signOut">退出登录</ElButton>
@@ -94,7 +94,7 @@ async function signOut() {
 .sidebar-utilities > :is(button, a):hover { color: var(--accent); background: var(--surface-subtle); }
 .sidebar-utilities > a[aria-current="page"], .sidebar-utilities > button[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); }
 .navigation-collapsed .sidebar-utilities > :is(button, a) { justify-content: center; padding-inline: var(--space-1); }
-@media (max-width: 1100px) { .workspace-purpose { display: none; } }
+@media (max-width: 1366px) { .workspace-purpose { display: none; } }
 @media (max-width: 740px) {
   .sidebar-utilities { display: flex; flex-wrap: wrap; padding: 0; margin: var(--space-1) 0 0; border: 0; }
   .navigation-collapsed .sidebar-utilities { display: none; }

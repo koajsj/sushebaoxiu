@@ -1,24 +1,24 @@
 /* Shared web design language. Element Plus remains the existing control library. */
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  color: #18283e;
-  background: #f4f7fb;
+  color: #202733;
+  background: #f5f6f8;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 
-  --canvas: #f4f7fb;
+  --canvas: #f5f6f8;
   --surface: #fff;
-  --surface-subtle: #f7f9fc;
-  --surface-line: #e5ebf3;
-  --line: #d5deeb;
-  --ink: #18283e;
-  --muted: #617086;
-  --ink-secondary: #40516a;
-  --accent: #215ecf;
-  --accent-hover: #194da9;
-  --accent-soft: #edf3ff;
-  --accent-line: #ceddfb;
+  --surface-subtle: #f8f9fb;
+  --surface-line: #e7e9ee;
+  --line: #d5dae2;
+  --ink: #202733;
+  --muted: #667181;
+  --ink-secondary: #465264;
+  --accent: #2864cf;
+  --accent-hover: #2055b3;
+  --accent-soft: #edf3fc;
+  --accent-line: #d3e1f7;
   --success: #28744e;
   --success-soft: #eaf5ef;
   --success-line: #d1e9da;
@@ -45,15 +45,15 @@
   --map-order: #d59256;
   --map-worker: #5590c4;
   --map-compass: #62776b;
-  --radius-sm: 12px;
-  --radius: 18px;
-  --radius-lg: 24px;
-  --surface-shadow: 0 4px 20px rgb(30 55 90 / 4%);
-  --overlay-shadow: 0 16px 48px rgb(30 55 90 / 12%);
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --surface-shadow: 0 2px 8px rgb(23 36 55 / 3%);
+  --overlay-shadow: 0 16px 48px rgb(23 36 55 / 14%);
   --focus-ring: 0 0 0 3px rgb(33 94 207 / 15%);
-  --page-max: 1280px;
-  --page-padding: clamp(24px, 2.8vw, 44px);
-  --surface-padding: clamp(22px, 2.5vw, 32px);
+  --page-max: 1360px;
+  --page-padding: clamp(24px, 2.4vw, 40px);
+  --surface-padding: clamp(20px, 2vw, 28px);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -62,18 +62,18 @@
   --space-6: 32px;
   --space-7: 40px;
   --space-8: 48px;
-  --sidebar-width: 236px;
-  --sidebar-collapsed-width: 96px;
-  --header-height: 76px;
+  --sidebar-width: 224px;
+  --sidebar-collapsed-width: 88px;
+  --header-height: 72px;
   --control-height: 42px;
   --control-height-sm: 36px;
-  --control-height-lg: 50px;
+  --control-height-lg: 48px;
   --control-radius: var(--radius-sm);
   --control-padding: var(--space-4);
-  --field-bg: var(--surface-subtle);
-  --field-hover-line: var(--ink-secondary);
+  --field-bg: var(--surface);
+  --field-hover-line: #a7b2c2;
   --on-accent: #fff;
-  --disabled-opacity: .55;
+  --disabled-opacity: .68;
   --danger-hover: #923431;
   --warning-line: #ead9bd;
   --info-line: #d1e0ec;
@@ -85,8 +85,8 @@
   --hero-ink: #fff;
   --hero-muted: #e2ecf8;
   --hero-banner-overlay: linear-gradient(90deg, rgb(12 30 52 / 84%), rgb(12 30 52 / 68%) 75%, rgb(12 30 52 / 25%));
-  --hero-login-overlay: linear-gradient(0deg, rgb(12 30 52 / 90%), rgb(12 30 52 / 78%) 55%, rgb(12 30 52 / 68%));
-  --motion-fast: 120ms;
+  --hero-login-overlay: linear-gradient(0deg, rgb(12 30 52 / 88%), rgb(12 30 52 / 64%) 28%, rgb(12 30 52 / 12%) 65%, transparent);
+  --motion-fast: 160ms;
   --motion: 180ms;
   --motion-enter: 220ms;
   --ease-out: cubic-bezier(.2, .7, .2, 1);
@@ -94,8 +94,11 @@
   --text-support: 13px;
   --text-body: 14px;
   --text-section: 20px;
-  --text-page: clamp(28px, 2.6vw, 38px);
-  --text-number: clamp(36px, 3.2vw, 46px);
+  --text-card: 18px;
+  --section-gap: 32px;
+  --form-gap: 20px;
+  --text-page: clamp(28px, 2.1vw, 32px);
+  --text-number: clamp(32px, 2.7vw, 40px);
 
   --el-color-primary: var(--accent);
   --el-color-primary-light-3: #638ede;
@@ -159,11 +162,11 @@ button:not(:disabled) { -webkit-tap-highlight-color: transparent; }
 .business-page { min-width: 0; max-width: var(--page-max); }
 .page-heading { margin-block: var(--space-2) var(--space-7); align-items: flex-start; }
 .page-heading > div { min-width: 0; }
-.page-heading h1 { color: var(--ink); font-size: var(--text-page); line-height: 1.18; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.page-heading h1 { color: var(--ink); font-size: var(--text-page); line-height: 1.35; letter-spacing: -.025em; overflow-wrap: anywhere; }
 .page-heading > div > p:last-child { max-width: 66ch; color: var(--muted); font-size: var(--text-body); line-height: 1.65; }
 .eyebrow { color: var(--accent); font-size: var(--text-caption); letter-spacing: .045em; line-height: 1.45; }
 .section-heading h2, .detail-surface h2, .chart-panel h2 { color: var(--ink); font-size: var(--text-section); line-height: 1.4; letter-spacing: -.025em; }
-.muted, .field-hint, .list-count { color: var(--muted); font-size: var(--text-caption); line-height: 1.6; }
+.muted, .field-hint, .list-count { color: var(--muted); font-size: var(--text-support); line-height: 1.6; }
 .el-card { --el-card-border-radius: var(--radius); --el-card-border-color: var(--surface-line); --el-card-padding: var(--surface-padding); }
 .el-badge { --el-badge-bg-color: var(--danger); }
 .el-skeleton { --el-skeleton-color: var(--surface-line); --el-skeleton-to-color: var(--surface-subtle); }

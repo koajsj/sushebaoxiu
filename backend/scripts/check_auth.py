@@ -1,20 +1,35 @@
 """Local development acceptance against real HTTP/MySQL; no third-party packages.
 Temporarily changes student001 status/role and restores both in finally.
-Never run against production. Pass BACKEND_URL to use a different local port.
+Requires an explicit isolated release endpoint/database. Refuses business databases.
 """
 import base64
 import hashlib
 import hmac
 import json
 import os
+import re
+import shlex
+from urllib.parse import urlparse
 from pathlib import Path
 import subprocess
 import time
 import urllib.error
 import urllib.request
+from check_isolation import verify_isolation
 
 ROOT = Path(__file__).resolve().parents[2]
-BASE = os.environ.get('BACKEND_URL', 'http://127.0.0.1:8080')
+BASE = os.environ.get('BACKEND_URL', '')
+DB = os.environ.get('CHECK_DB_NAME', '')
+endpoint = urlparse(BASE)
+if not (endpoint.scheme == 'http' and endpoint.hostname == '127.0.0.1' and endpoint.port == 18086 and endpoint.path in ('', '/')):
+    raise SystemExit('isolated release endpoint 18086 required before any requests')
+if not re.fullmatch(r'campus_repair_deep_check_[a-z0-9_]+', DB):
+    raise SystemExit('isolated release database required before any requests')
+env_file = ROOT / '.runtime' / DB / 'backend.env'
+env = dict(line.split('=', 1) for line in env_file.read_text().splitlines() if '=' in line and not line.startswith('#'))
+env = {key: shlex.split(value)[0] if value else '' for key, value in env.items()}
+if env.get('DB_NAME') != DB or env.get('SERVER_PORT') != '18086':
+    raise SystemExit('private endpoint configuration must match isolated database')
 MYSQL = Path.home() / '.cache/campus-repair/tools/mysql-8.4.9-macos15-arm64/bin/mysql'
 CONF = ROOT / '.runtime/mysql-root.cnf'
 checks = 0
@@ -51,7 +66,7 @@ def request(path, method='GET', data=None, token=None, headers=None):
 
 def sql(command):
     return subprocess.check_output([str(MYSQL), '--defaults-extra-file=' + str(CONF),
-                                   '--batch', '--skip-column-names', '-e', command], text=True).strip()
+                                   '--batch', '--skip-column-names', DB, '-e', command], text=True).strip()
 
 
 def login(username, password='123456'):
@@ -68,6 +83,7 @@ def sign(claims, secret, algorithm='HS256'):
     return unsigned + '.' + signature
 
 
+verify_isolation(sql, BASE, DB)
 check(request('/api/health')[0] == 200, 'Phase 1 health remains accessible')
 tokens = {}
 for role in ['student', 'worker', 'admin']:
@@ -101,7 +117,6 @@ claims = json.loads(base64.urlsafe_b64decode(parts[1] + '=' * (-len(parts[1]) % 
 forged = dict(claims, role='ADMIN')
 check(request('/api/admin/me', token=parts[0] + '.' + encode(forged) + '.' + parts[2])[0] == 401, 'tampered role/signature rejected')
 check(request('/api/users/me', token='not-a-jwt')[0] == 401, 'malformed JWT rejected')
-env = dict(line.split('=', 1) for line in (ROOT / '.runtime/backend.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
 secret = base64.b64decode(env['JWT_SECRET'])
 now = int(time.time())
 variants = {
@@ -119,16 +134,16 @@ check(request('/api/users/me', token=sign(claims, b'x' * 32))[0] == 401, 'wrong 
 check(request('/api/users/me', token=sign(claims, secret, 'HS384'))[0] == 401, 'unexpected algorithm rejected')
 check(request('/api/users/me', token=encode({'alg': 'none'}) + '.' + encode(claims) + '.')[0] == 401, 'unsigned JWT rejected')
 
-original = sql("SELECT status, role FROM campus_repair.user WHERE username='student001'").split('\t')
+original = sql("SELECT status, role FROM `user` WHERE username='student001'").split('\t')
 try:
-    sql("UPDATE campus_repair.user SET status=0 WHERE username='student001'")
+    sql("UPDATE `user` SET status=0 WHERE username='student001'")
     check(login('student001')[0] == 401, 'disabled user cannot log in')
     check(request('/api/users/me', token=tokens['student'])[0] == 401, 'disabled user existing token rejected immediately')
-    sql("UPDATE campus_repair.user SET status=1,role='ADMIN' WHERE username='student001'")
+    sql("UPDATE `user` SET status=1,role='ADMIN' WHERE username='student001'")
     check(request('/api/admin/me', token=tokens['student'])[0] == 200, 'authority derives from current database role')
     check(request('/api/student/me', token=tokens['student'])[0] == 403, 'stale JWT role is not trusted')
 finally:
-    sql("UPDATE campus_repair.user SET status=" + original[0] + ",role='" + original[1] + "' WHERE username='student001'")
+    sql("UPDATE `user` SET status=" + original[0] + ",role='" + original[1] + "' WHERE username='student001'")
 
 for role, token in tokens.items():
     status, body, _ = request('/api/auth/logout', 'POST', token=token)
@@ -143,6 +158,6 @@ check(status == 200 and headers.get('Access-Control-Allow-Origin') == 'http://12
 status, _, headers = request('/api/student/me', 'OPTIONS', headers={
     'Origin': 'https://untrusted.example', 'Access-Control-Request-Method': 'GET'})
 check(status == 403 and 'Access-Control-Allow-Origin' not in headers, 'CORS rejects untrusted origin')
-check(sql("SELECT COUNT(*) FROM campus_repair.user WHERE password='123456'") == '0', 'database stores no plaintext development passwords')
-check(sql("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='campus_repair' AND table_name='user'") == '1', 'Phase 2 user table remains present')
+check(sql("SELECT COUNT(*) FROM `user` WHERE password='123456'") == '0', 'database stores no plaintext development passwords')
+check(sql("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=DATABASE() AND table_name='user'") == '1', 'Phase 2 user table remains present')
 print('PASS', checks, 'real HTTP/database assertions; tokens and signing secret are not printed.')

@@ -16,3 +16,8 @@ logs/
 .runtime/
 *.log
 backend/uploads/
+
+# Local Codex configuration and legacy IDE-only project metadata
+/.codex/
+/bishe/
+__pycache__/

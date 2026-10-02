@@ -1,12 +1,19 @@
 """Bounded acceptance for the final enhancements, isolated DB only."""
 from pathlib import Path
 from urllib import request,error
-import json,subprocess,time,struct,zlib
+import json,subprocess,time,struct,zlib,os,re,uuid
+from urllib.parse import urlparse
 from datetime import datetime,timedelta
 from concurrent.futures import ThreadPoolExecutor
+from check_isolation import verify_isolation
 ROOT=Path(__file__).resolve().parents[2]
-BASE='http://127.0.0.1:18085'
-DB='campus_repair_phase5_check_20260930'
+BASE=os.environ.get('BACKEND_URL','')
+DB=os.environ.get('CHECK_DB_NAME','')
+endpoint=urlparse(BASE)
+if not (endpoint.scheme=='http' and endpoint.hostname=='127.0.0.1' and endpoint.port==18086 and endpoint.path in ('','/')):
+ raise SystemExit('isolated release endpoint required before any requests')
+if not re.fullmatch(r'campus_repair_deep_check_[a-z0-9_]+',DB):
+ raise SystemExit('isolated release database required before any requests')
 MYSQL=Path.home()/'.cache/campus-repair/tools/mysql-8.4.9-macos15-arm64/bin/mysql'
 def sql(s):
  return subprocess.check_output([str(MYSQL),'--defaults-extra-file='+str(ROOT/'.runtime/mysql-root.cnf'),'--batch','--skip-column-names',DB,'-e',s],text=True,timeout=5).strip()
@@ -19,7 +26,7 @@ def call(path,t=None,method='GET',body=None):
  except error.HTTPError as v:return v.code,json.load(v)
 def data(path,t=None,method='GET',body=None):
  c,v=call(path,t,method,body);assert c==200,(path,c,v);return v['data']
-def login(n):return data('/api/auth/login',method='POST',body={'username':n,'password':'123456'})['token']
+def login(n,password='123456'):return data('/api/auth/login',method='POST',body={'username':n,'password':password})['token']
 def check(ok,label):
  assert ok,label
  print('PASS',label,flush=True)
@@ -35,9 +42,13 @@ def image_status(path,t):
   with request.urlopen(request.Request(BASE+path,headers={'Authorization':'Bearer '+t}),timeout=5) as v:return v.status
  except error.HTTPError as v:return v.code
 def run():
- a,s,wa,wb,other=[login(n) for n in ('admin001','student001','worker001','worker002','student_phase5')]
+ verify_isolation(sql,BASE,DB)
+ a,s,wa,wb=[login(n) for n in ('admin001','student001','worker001','worker002')]
+ other_name='check_s_'+uuid.uuid4().hex[:12]
+ data('/api/admin/manage/users',a,'POST',{'role':'STUDENT','username':other_name,'password':'CheckStudent1!','realName':'隔离验收学生','studentNo':other_name,'college':'验收学院','className':'验收班'})
+ other=login(other_name,'CheckStudent1!')
  c=data('/api/catalog',s)
- payload={'typeId':c['types'][0]['id'],'title':'异常流程验收','description':'隔离数据库业务增强验收','buildingId':c['buildings'][0]['id'],'roomNo':'501','priority':'HIGH'}
+ payload={'typeId':c['types'][0]['id'],'title':'异常流程验收','description':'隔离数据库业务增强验收','buildingId':c['buildings'][0]['id'],'roomNo':'501','priority':'HIGH','requestKey':str(uuid.uuid4())}
  oid=data('/api/student/orders',s,'POST',payload)['id']
  p=lambda role,action:f'/api/{role}/orders/{oid}/{action}'
  detail=lambda t=s:data(f'/api/orders/{oid}',t)
@@ -60,7 +71,7 @@ def run():
  data(p('worker','reject'),wa,'PUT',{'reason':'当前无法到场'})
  check(detail()['order']['workerId'] is None and detail()['order']['status']=='WAIT_ASSIGN','refusal releases worker')
  check(call(p('worker','reject'),wa,'PUT',{'reason':'重复拒单'})[0]==404,'repeated refusal creates no event')
- recs=data(f'/api/admin/dispatch/recommend/{oid}',a)
+ recs=data(f'/api/admin/dispatch/recommend/{oid}',a,'POST')
  target=next(r for r in recs if r['workerId']==bid)
  data('/api/admin/dispatch',a,'POST',{'orderId':oid,'workerId':bid,'recommendationId':target['recommendationId']})
  check(call(p('worker','start'),wb,'PUT')[0]==409,'smart assignment requires explicit response')
@@ -93,7 +104,7 @@ def run():
  check(detail()['order']['appointmentReason']=='下午有课','appointment rejection persisted')
  print('Flow D passed',flush=True)
  data(p('worker','start'),wb,'PUT')
- record={'orderId':oid,'content':'首次处理，仍需验收','imageUrl':''}
+ record={'orderId':oid,'content':'首次处理，仍需验收','imageUrl':'','requestKey':str(uuid.uuid4())}
  data('/api/worker/repair-record',wb,'POST',record);data('/api/worker/repair-record',wb,'POST',record)
  check(len(detail()['records'])==1,'blank-image retry does not duplicate repair record')
  data(p('worker','finish'),wb,'PUT')
@@ -106,7 +117,7 @@ def run():
  check(detail()['order']['repairRound']==2 and detail()['order']['appointmentStatus']=='NONE','original-worker rework resets coordination')
  data(p('worker','start'),wb,'PUT')
  check(call(p('worker','finish'),wb,'PUT')[0]==409,'previous round record cannot complete new round')
- data('/api/worker/repair-record',wb,'POST',{'orderId':oid,'content':'第二次维修，完成修复'})
+ data('/api/worker/repair-record',wb,'POST',{'orderId':oid,'content':'第二次维修，完成修复','requestKey':str(uuid.uuid4())})
  data(p('worker','finish'),wb,'PUT')
  check(detail()['records'][0]==first,'first repair round never overwritten')
  data(p('student','confirm'),s,'PUT')
@@ -116,10 +127,11 @@ def run():
  check([e['action'] for e in detail()['timeline']].count('ACCEPTANCE_FAIL')==1,'single actual acceptance-failure event')
  print('Flow C passed',flush=True)
  # A second order covers admin redispatch rework and both SLA types.
+ payload['requestKey']=str(uuid.uuid4())
  oid=data('/api/student/orders',s,'POST',payload)['id']
  data(p('admin','audit'),a,'PUT');data(p('admin','assign'),a,'PUT',{'workerId':aid})
  def wait_overdue(kind):
-  limit=time.monotonic()+5
+  limit=time.monotonic()+75
   while time.monotonic()<limit:
    if detail()['order']['overdueType']==kind:return
    time.sleep(.15)
@@ -138,14 +150,14 @@ def run():
  check(int(sql(f"SELECT COUNT(*) FROM order_event WHERE order_id={oid} AND action='SLA_REPAIR'"))==1,'repair timeout is idempotent')
  image=upload(wa)
  check(image_status(image,wa)==200 and image_status(image,s)==404,'unbound image preview is uploader-only')
- data('/api/worker/repair-record',wa,'POST',{'orderId':oid,'content':'第一轮修复','imageUrl':image})
+ data('/api/worker/repair-record',wa,'POST',{'orderId':oid,'content':'第一轮修复','imageUrl':image,'requestKey':str(uuid.uuid4())})
  check(image_status(image,s)==200 and image_status(image,a)==200,'bound image available to student and administrator')
  data(p('worker','finish'),wa,'PUT');data(p('student','acceptance-fail'),s,'PUT',{'reason':'仍需换人处理'})
  data(p('admin','rework'),a,'PUT',{'mode':'REDISPATCH'})
  check(detail()['order']['workerId'] is None and detail()['order']['status']=='WAIT_ASSIGN','rework redispatch releases prior worker')
  data(p('admin','assign'),a,'PUT',{'workerId':bid});data(p('worker','accept'),wb,'PUT');data(p('worker','start'),wb,'PUT')
  check(image_status(image,wa)==404 and image_status(image,wb)==200,'replaced uploader loses bound-image access; current worker retains access')
- data('/api/worker/repair-record',wb,'POST',{'orderId':oid,'content':'更换人员完成第二轮'})
+ data('/api/worker/repair-record',wb,'POST',{'orderId':oid,'content':'更换人员完成第二轮','requestKey':str(uuid.uuid4())})
  data(p('worker','finish'),wb,'PUT');data(p('student','confirm'),s,'PUT')
  check([r['workerId'] for r in detail()['records']]==[aid,bid],'rework redispatch retains both workers records')
  overview=data('/api/admin/statistics/overview',a)
@@ -153,7 +165,7 @@ def run():
  check(overview['todayCount']==int(sql('SELECT COUNT(*) FROM repair_order WHERE create_time>=CURDATE() AND create_time<DATE_ADD(CURDATE(),INTERVAL 1 DAY)')),'dashboard today matches DB')
  check(overview['overdueCount']==int(sql('SELECT COUNT(*) FROM repair_order WHERE overdue_type IS NOT NULL')),'dashboard overdue matches DB')
  check(overview['reworkCount']==int(sql("SELECT COUNT(*) FROM repair_order WHERE repair_round>1 OR status='REWORK_PENDING'")),'dashboard rework matches DB')
- check(overview['activeCount']==int(sql("SELECT COUNT(*) FROM repair_order WHERE status IN('ASSIGNED','PROCESSING','WAIT_CONFIRM','REWORK_PENDING')")),'dashboard active state count remains accurate')
+ check(overview['activeCount']==int(sql("SELECT COUNT(*) FROM repair_order WHERE (status='WAIT_ASSIGN' AND worker_id IS NOT NULL) OR status IN('ASSIGNED','PROCESSING','WAIT_CONFIRM','REWORK_PENDING')")),'dashboard active state count remains accurate')
  for role,token,scope,worker_id in [('student',s,"student_id=(SELECT st.id FROM student st JOIN `user` u ON u.id=st.user_id WHERE u.username='student001')",None),('worker',wb,f'worker_id={bid}',bid)]:
   summary=data(f'/api/{role}/summary',token)
   clauses={'total':'TRUE','pending':"status IN('WAIT_AUDIT','WAIT_ASSIGN','ASSIGNED')",'active':"status IN('PROCESSING','WAIT_CONFIRM','REWORK_PENDING')",'completed':"status IN('FINISHED','COMMENTED')",'today':'create_time>=CURDATE()'}

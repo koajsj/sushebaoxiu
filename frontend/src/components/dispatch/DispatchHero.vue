@@ -11,12 +11,12 @@ defineProps<{ total: number; loading: boolean; failed: boolean }>()
 </template>
 
 <style scoped>
-.dispatch-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-7); background: var(--surface); border: 1px solid var(--surface-line); border-radius: var(--radius-lg); }
+.dispatch-hero { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-2) 0 var(--space-5); border-bottom: 1px solid var(--surface-line); }
 .hero-copy { min-width: 0; }
 h1 { font-size: var(--text-page); font-weight: 600; line-height: 1.25; letter-spacing: -.04em; margin-top: var(--space-3); }
 .hero-description { color: var(--muted); font-size: var(--text-body); line-height: 1.8; margin: var(--space-3) 0 var(--space-5); }
 .queue-metric { min-width: 210px; padding-left: var(--space-7); border-left: 1px solid var(--surface-line); color: var(--muted); font-size: var(--text-caption); }
 .queue-metric strong { display: block; color: var(--accent); font-size: var(--text-number); line-height: 1.25; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.04em; margin: var(--space-2) 0; }
 .queue-metric small { font-size: var(--text-body); font-weight: 500; margin-left: var(--space-2); color: var(--muted); }
-@media(max-width:740px) { .dispatch-hero { padding: var(--space-5); align-items: flex-start; flex-direction: column; gap: var(--space-5); } .queue-metric { border-left: 0; border-top: 1px solid var(--surface-line); width: 100%; padding: var(--space-4) 0 0; } .queue-metric strong { font-size: 32px; } }
+@media(max-width:740px) { .dispatch-hero { align-items: flex-start; flex-direction: column; gap: var(--space-5); } .queue-metric { border-left: 0; width: 100%; padding: 0; } .queue-metric strong { font-size: 32px; } }
 </style>

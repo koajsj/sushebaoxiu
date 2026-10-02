@@ -106,8 +106,8 @@ onBeforeUnmount(()=>{revision++;queueRevision++;clearTimeout(expiryTimer)})
 
 <style scoped>
 .dispatch-center { display: grid; gap: var(--space-5); }
-.decision-grid { display: grid; grid-template-columns: minmax(280px,340px) minmax(0,1fr); gap: var(--space-5); align-items: start; }
-.order-context { display: grid; gap: var(--space-5); min-width: 0; animation: context-enter var(--motion-enter) var(--ease-out) both; }
+.decision-grid { display: grid; grid-template-columns: minmax(240px,280px) minmax(0,1fr); gap: var(--space-6); align-items: start; }
+.order-context { display: grid; gap: var(--space-5); min-width: 0; }
 .queue-panel { padding: var(--space-5); border-radius: var(--radius); border: 1px solid var(--surface-line); background: var(--surface); }
 .queue-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
 .queue-heading h2 { font-size: var(--text-body); font-weight: 600; }
@@ -139,7 +139,7 @@ onBeforeUnmount(()=>{revision++;queueRevision++;clearTimeout(expiryTimer)})
 .loading-line.short { width: 40%; height: 14px; }
 .dispatch-success { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); animation: context-enter var(--motion-enter) var(--ease-out); }
 @keyframes context-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-@media(max-width:1100px) { .decision-grid { grid-template-columns: minmax(240px,290px) minmax(0,1fr); } }
+@media(max-width:1100px) { .decision-grid { grid-template-columns: minmax(220px,260px) minmax(0,1fr); gap: var(--space-5); } }
 @media(max-width:860px) { .decision-grid { grid-template-columns: minmax(0,1fr); } .order-context { grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; } }
 @media(max-width:620px) { .order-context { grid-template-columns: minmax(0,1fr); } .candidate-loading, .decision-empty { padding: var(--space-5); } .queue-items { max-height: 220px; } }
 @media(prefers-reduced-motion:reduce) { .order-context, .dispatch-success { animation: none; } .queue-item { transition: none; } }

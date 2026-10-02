@@ -17,7 +17,7 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
 
 <style scoped>
 .dialog-intro, .dialog-hint { color: var(--muted); font-size: var(--text-support); line-height: 1.8; }
-.confirmation-order { background: var(--surface-subtle); border-radius: var(--radius-sm); padding: var(--space-4); margin: var(--space-5) 0; }
+.confirmation-order { border-block: 1px solid var(--surface-line); padding-block: var(--space-4); margin: var(--space-5) 0; }
 .confirmation-order span { color: var(--accent); font-size: var(--text-caption); }
 .confirmation-order h3 { color: var(--ink); font-size: 18px; line-height: 1.5; overflow-wrap: anywhere; margin-block: var(--space-2); }
 .confirmation-order p { color: var(--muted); font-size: var(--text-support); overflow-wrap: anywhere; }
@@ -26,8 +26,8 @@ const emit = defineEmits<{ close: []; confirm: [] }>()
 .confirmation-worker>div { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .confirmation-worker strong { color: var(--ink); font-weight: 600; }
 .confirmation-worker p { font-size: var(--text-caption); color: var(--muted); }
-.confirmation-score { font-size: 28px; color: var(--accent); font-weight: 600; text-align: right; }
-.confirmation-score small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
+.confirmation-score { font-size: 24px; color: var(--ink); font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+.confirmation-score small { display: block; font-size: var(--text-caption); font-weight: 400; color: var(--muted); }
 .confirmation-actions { display: flex; justify-content: flex-end; }
 @media(max-width:420px) { .confirmation-worker { flex-wrap: wrap; } .confirmation-score { margin-left: auto; } .confirmation-actions button { flex: 1; } }
 </style>
