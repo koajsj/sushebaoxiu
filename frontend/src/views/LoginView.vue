@@ -9,6 +9,7 @@ import 'element-plus/theme-chalk/el-form.css'
 import 'element-plus/theme-chalk/el-form-item.css'
 import 'element-plus/theme-chalk/el-input.css'
 import BrandMark from '../components/BrandMark.vue'
+import CampusHero from '../components/CampusHero.vue'
 import { useAuthStore } from '../store/auth'
 
 const auth = useAuthStore()
@@ -43,21 +44,13 @@ async function submit() {
   <main class="login-page">
     <header class="login-brand"><BrandMark /></header>
     <div class="login-composition">
-      <section class="login-story" aria-label="校园服务介绍">
+      <CampusHero class="login-story" variant="login" asset="entrance" label="校园服务介绍">
         <div class="story-copy">
           <p class="story-label">为校园，留一份安心。</p>
           <h1>美好校园，<br />从用心照顾开始。</h1>
           <p class="story-description">一个熟悉的入口，连接每一份校园关怀。</p>
         </div>
-        <div class="campus-scene" role="img" aria-label="阳光下的校园建筑与树木轮廓">
-          <div class="scene-sun"></div>
-          <div class="scene-building building-left"></div>
-          <div class="scene-building building-main"><span class="building-door"></span></div>
-          <div class="scene-building building-right"></div>
-          <div class="scene-tree tree-left"></div><div class="scene-tree tree-right"></div>
-          <div class="scene-ground"></div>
-        </div>
-      </section>
+      </CampusHero>
       <section class="login-card" aria-labelledby="login-title">
         <div class="login-card-heading"><span class="login-monogram" aria-hidden="true">C</span>
           <h2 id="login-title">欢迎回来</h2><p>登录你的校园服务账号</p></div>

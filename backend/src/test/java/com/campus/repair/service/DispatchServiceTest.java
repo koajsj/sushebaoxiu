@@ -58,6 +58,30 @@ class DispatchServiceTest {
         var error=assertThrows(BusinessException.class,()->service.confirm(admin,new DispatchRequest(1L,1L,5L)));
         assertEquals(ErrorCode.RECOMMENDATION_STALE,error.getErrorCode());verify(orders,never()).updateById(any(RepairOrderEntity.class));
     }
+    @Test void confirmationPreservesRecommendationFieldsAndWorkflow() {
+        var snapshot=setup();
+        var result=service.confirm(admin,new DispatchRequest(1L,1L,5L));
+        var saved=org.mockito.ArgumentCaptor.forClass(DispatchRecordEntity.class);
+        verify(records).insert(saved.capture());
+        var row=saved.getValue();
+        assertAll(
+                ()->assertEquals(snapshot.getOrderId(),row.getOrderId()),
+                ()->assertEquals(snapshot.getWorkerId(),row.getWorkerId()),
+                ()->assertEquals(snapshot.getRecommendationBatch(),row.getRecommendationBatch()),
+                ()->assertEquals(snapshot.getRoundNo(),row.getRoundNo()),
+                ()->assertEquals(snapshot.getSkillScore(),row.getSkillScore()),
+                ()->assertEquals(snapshot.getDistanceScore(),row.getDistanceScore()),
+                ()->assertEquals(snapshot.getLoadScore(),row.getLoadScore()),
+                ()->assertEquals(snapshot.getRatingScore(),row.getRatingScore()),
+                ()->assertEquals(snapshot.getTotalScore(),row.getTotalScore()),
+                ()->assertEquals(snapshot.getReason(),row.getReason()),
+                ()->assertEquals(snapshot.getCreateTime(),row.getCreateTime()),
+                ()->assertTrue(row.getConfirmed()),
+                ()->assertEquals("SMART",row.getMethod()),
+                ()->assertEquals("ASSIGNED",row.getDecision()),
+                ()->assertEquals(row.getTotalScore(),result.totalScore()));
+        verify(workflow).assigned(argThat(order->"ASSIGNED".equals(order.getStatus())&&Long.valueOf(1).equals(order.getWorkerId())),eq(admin),same(row));
+    }
     @Test void storedTimestampCannotRoundIntoTheFuture() {
         setup();time.set(Instant.parse("2026-09-30T00:00:00.600Z"));
         var worker=workers.lockById(1);

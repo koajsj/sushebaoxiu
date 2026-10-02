@@ -6,7 +6,7 @@ import { createMemoryHistory } from 'vue-router'
 // Real frontend API/Pinia/router -> real HTTP. No browser/GUI or mocked responses.
 const storage=new Map()
 globalThis.localStorage={getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)}
-const server=await createServer({server:{middlewareMode:true,hmr:false},appType:'custom'})
+const server=await createServer({server:{middlewareMode:true,hmr:false,ws:false},appType:'custom'})
 const warnings=[], originalWarn=console.warn
 console.warn=(...args)=>warnings.push(args.join(' '))
 let count=0

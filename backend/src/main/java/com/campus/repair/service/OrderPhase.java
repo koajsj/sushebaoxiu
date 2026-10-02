@@ -1,6 +1,7 @@
 package com.campus.repair.service;
 
 import com.campus.repair.entity.RepairOrderEntity;
+import java.time.LocalDateTime;
 
 /** Public business stage; legacy statuses stay unchanged in storage. */
 public enum OrderPhase {
@@ -8,10 +9,14 @@ public enum OrderPhase {
     PROCESSING, WAIT_CONFIRM, FINISHED, COMMENTED, REJECTED, REWORK_PENDING;
 
     public static OrderPhase of(RepairOrderEntity order) {
-        if("WAIT_ASSIGN".equals(order.getStatus()))
-            return order.getWorkerId()==null?WAIT_DISPATCH:WAIT_ACCEPT;
-        if("ASSIGNED".equals(order.getStatus()))
-            return order.getAcceptedTime()==null?WAIT_ACCEPT:WAIT_START;
-        return valueOf(order.getStatus());
+        return of(order.getStatus(),order.getWorkerId(),order.getAcceptedTime());
+    }
+
+    public static OrderPhase of(String status,Long workerId,LocalDateTime acceptedTime) {
+        if("WAIT_ASSIGN".equals(status))
+            return workerId==null?WAIT_DISPATCH:WAIT_ACCEPT;
+        if("ASSIGNED".equals(status))
+            return acceptedTime==null?WAIT_ACCEPT:WAIT_START;
+        return valueOf(status);
     }
 }

@@ -1,7 +1,6 @@
-import { http, ApiError } from '../utils/request'
+import { http, unwrap } from '../utils/request'
 import type { ApiResult,PageResult,UserRole } from '../types'
 
-function unwrap<T>(result:ApiResult<T>):T {if(result.data===null)throw new ApiError('服务返回内容不完整');return result.data}
 export interface Account {
   id:number;username:string;realName:string;phone:string|null;role:UserRole;status:number
   studentNo:string|null;college:string|null;className:string|null;buildingId:number|null;roomNo:string|null

@@ -10,7 +10,7 @@ import { renderToString } from 'vue/server-renderer'
 const storage = new Map()
 globalThis.localStorage = { getItem: (key) => storage.get(key) ?? null,
   setItem: (key, value) => storage.set(key, String(value)), removeItem: (key) => storage.delete(key) }
-const server = await createServer({ server: { middlewareMode: true, hmr: false }, appType: 'custom' })
+const server = await createServer({ server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' })
 try {
   const { createAppRouter } = await server.ssrLoadModule('/src/router/index.ts')
   const { useAuthStore } = await server.ssrLoadModule('/src/store/auth.ts')

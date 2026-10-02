@@ -36,6 +36,9 @@
 | GET | /api/admin/statistics/trend | 最近14天新报修与维修结果提交趋势 |
 | GET | /api/admin/statistics/types | 故障类型工单数量和比例 |
 | GET | /api/admin/statistics/workers | 人员完成量、真实评价均分、当前任务数 |
+| GET | /api/admin/export/orders | 仅管理员，下载工单统计.xlsx |
+| GET | /api/admin/export/workers | 仅管理员，下载维修效率.xlsx |
+| GET | /api/admin/export/types | 仅管理员，下载故障分析.xlsx |
 | GET | /api/orders/{orderId}/messages | 订单学生、当前维修员、管理员按 beforeId/afterId/size 分页读取 |
 | GET | /api/orders/{orderId}/messages/context | 轻量读取标题与当前负责人 |
 | POST | /api/orders/{orderId}/messages | 学生与当前维修员发送文字；JSON content |
@@ -47,11 +50,30 @@
 | GET | /api/student/summary | 学生本人基础业务计数 |
 | GET | /api/worker/summary | 维修员本人基础计数，today按今日分配事件计算 |
 | POST | /api/images | 学生/维修人员，multipart字段file |
-| GET | /api/images/{uuid} | 图片上传者或绑定订单参与者，管理员读已绑定图 |
+| GET | /api/images/{uuid} | 未绑定图片仅上传者；已绑定图片按当前订单归属，管理员可读 |
 
 工单分页参数 `page` 默认1、`size` 默认12且最大100；`status` 为原主状态，`phase` 为派生业务阶段。管理员 `typeId`、`from`/`to`（YYYY-MM-DD，含起止日期）可选。创建JSON为 typeId/title/description/buildingId/roomNo/priority/imageUrl/requestKey，priority为LOW/NORMAL/HIGH，图片可不传。先上传获得 `/api/images/{uuid}` 再引用，不能传任意外部图片URL或他人上传。新操作生成新UUID；同次重试复用同一键，同键不同载荷返回409。
 
 返回统一 `{code,message,data}`。未登录401、角色错误403、非订单参与者404、状态冲突409、参数/图片错误400。图片成功读取为二进制，前端带授权获取Blob后展示；不公开上传目录。
+
+## 管理员报表导出
+
+以上三个 `/api/admin/export/*` 接口均要求管理员 Bearer JWT，无筛选参数，返回全量只读快照。成功响应为 `.xlsx` 二进制（不包装在Result中），`Content-Disposition` 包含UTF-8中文文件名及Asia/Shanghai日期，`Cache-Control: no-store`。失败仍返回统一JSON错误；未登录401、非管理员403。前端入口位于Dashboard页头，下载请求超时为60秒，错误文件不会被当作Excel保存。
+
+| 报表 | 字段 |
+| --- | --- |
+| 工单统计 | 工单编号、报修人、故障类型、报修地点、优先级、当前状态、维修人员、创建时间、完成时间、维修耗时（小时） |
+| 维修效率 | 维修人员姓名、完成订单数量、平均评分、平均维修时间（小时）、返工次数、当前任务数量 |
+| 故障分析 | 故障类型、数量、占比 |
+
+每份文件包含数据页及「口径说明」页；中文表头加粗、首行冻结、列宽自动调整并限制在可读范围。工单编号按文本保存以避免Excel数字精度损失，用户文字不会生成公式。统计定义如下：
+
+- 工单当前状态采用系统统一业务阶段；完成时间为学生最终确认事件时间，仅已完成/已评价工单展示。旧数据没有确认事件时不猜测时间，保留空值。
+- 维修轮次耗时沿用Dashboard的 `MIN(start_time) → MAX(finish_time)`，只包含已完成记录。工单维修耗时为各已完成轮次之和；维修员平均耗时为其负责的已完成轮次平均值，按该轮最终维修记录的人员归属。均以小时保留一位小数，不把审核、派单或验收等待计入。
+- 维修员完成数量、平均评分、当前任务数量直接调用原 `StatisticsService.workers`，不改变Dashboard口径；当前任务包括WAIT_ASSIGN、ASSIGNED和PROCESSING。返工次数按验收未通过事件的实际维修员计数，保留多轮历史归属。
+- 故障数量及占比直接调用原 `StatisticsService.types`，包含零工单类型，占比沿用一位小数百分比。无有效评分/耗时或总工单数为零时，相应单元格留空。
+
+导出不建表、不写业务数据。工单使用500条游标分页，Excel使用100行流式窗口；生成完毕后再发送文件，最终文件仍需缓存在内存中。本科项目规模下同步生成，未引入后台导出任务。单表最多1,048,575条数据（另占一行表头），超过Excel限制返回413错误，不截断数据。
 
 
 ## 流程增强接口

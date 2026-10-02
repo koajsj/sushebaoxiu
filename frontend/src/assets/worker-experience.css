@@ -1,0 +1,92 @@
+/* Worker-only presentation, using the existing UI-1 design tokens. */
+.worker-workspace .business-page { max-width: 1120px; }
+.worker-workspace .workspace-content { padding-top: var(--space-6); }
+.worker-workspace .page-heading { margin: var(--space-2) 0 var(--space-6); }
+.worker-workspace .page-heading h1 { font-size: var(--text-page); }
+.worker-workspace .section-heading { flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.worker-workspace .section-heading h2 { font-size: var(--text-section); }
+.worker-workspace .worker-home { display: grid; gap: var(--space-6); }
+.worker-workspace .worker-welcome { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); padding: var(--space-6) 0 var(--space-2); animation: worker-arrive var(--motion-enter) var(--ease-out) backwards; }
+.worker-workspace .worker-welcome h1 { font-size: var(--text-page); line-height: 1.25; letter-spacing: -.035em; font-weight: 600; }
+.worker-workspace .worker-welcome p:last-child { margin-top: var(--space-4); color: var(--muted); line-height: 1.8; max-width: 680px; }
+.worker-workspace .worker-task-summary { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border: 1px solid var(--surface-line); border-radius: var(--radius); background: var(--surface); padding: var(--space-5) 0; }
+.worker-workspace .worker-task-summary a { padding: 0 var(--space-5); min-width: 0; display: grid; gap: var(--space-2); border-right: 1px solid var(--surface-line); transition: color var(--motion-fast); }
+.worker-workspace .worker-task-summary a:last-child { border-right: 0; }
+.worker-workspace .worker-task-summary a:hover strong { color: var(--accent); }
+.worker-workspace .worker-task-summary span { color: var(--ink-secondary); font-size: var(--text-support); }
+.worker-workspace .worker-task-summary strong { font-size: var(--text-number); font-weight: 600; line-height: 1.2; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.worker-workspace .worker-task-summary small { color: var(--muted); font-size: var(--text-caption); line-height: 1.6; }
+.worker-workspace .worker-attention { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4); padding: var(--space-5); border-left: 3px solid var(--warning); border-radius: var(--radius-sm); background: var(--warning-soft); }
+.worker-workspace .worker-attention strong { font-size: var(--text-body); font-weight: 600; color: var(--warning); }
+.worker-workspace .worker-attention p { color: var(--ink-secondary); font-size: var(--text-support); line-height: 1.7; margin-top: var(--space-2); }
+.worker-workspace .worker-attention ul { margin: 0; padding: var(--space-3) 0 0; list-style: none; width: 100%; border-top: 1px solid var(--line); }
+.worker-workspace .worker-attention li a { display: flex; gap: var(--space-3); justify-content: space-between; padding: var(--space-2) 0; font-size: var(--text-support); overflow-wrap: anywhere; }
+.worker-workspace .worker-attention li a span:first-child { flex: 1; }
+.worker-workspace .worker-data-scope { font-size: var(--text-caption); color: var(--muted); line-height: 1.7; }
+.worker-workspace .worker-task-scope { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
+.worker-workspace .worker-task-scope > a { flex-shrink: 0; font-size: var(--text-caption); }
+.worker-workspace .worker-loading { display: grid; align-content: center; gap: var(--space-4); min-height: 140px; padding: var(--space-5); border-radius: var(--radius); background: var(--surface); color: var(--muted); }
+.worker-workspace .worker-loading > span { width: min(260px,60%); height: 24px; border-radius: var(--radius-sm); background: var(--surface-line); }
+.worker-workspace .worker-quiet-state { padding: var(--space-5); border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--muted); font-size: var(--text-support); line-height: 1.8; }
+.worker-workspace .order-grid { gap: var(--space-4); }
+.worker-workspace .worker-task-card { display: flex; flex-direction: column; min-width: 0; padding: var(--space-5); border: 1px solid var(--surface-line); border-radius: var(--radius); background: var(--surface); color: var(--ink); transition: border-color var(--motion-fast), transform var(--motion-fast); }
+.worker-workspace .worker-task-card:hover { border-color: var(--accent-line); transform: translateY(-1px); }
+.worker-workspace .worker-task-card:active { transform: scale(.995); }
+.worker-workspace .worker-task-featured { border-color: var(--accent-line); }
+.worker-workspace .worker-task-card > header { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: var(--space-3); color: var(--muted); font-size: var(--text-caption); }
+.worker-workspace .worker-task-card h3 { margin-top: var(--space-4); font-size: 20px; font-weight: 600; letter-spacing: -.02em; line-height: 1.4; overflow-wrap: anywhere; }
+.worker-workspace .worker-task-place { margin-top: var(--space-2); color: var(--ink-secondary); overflow-wrap: anywhere; }
+.worker-workspace .worker-task-signals { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); color: var(--muted); font-size: var(--text-caption); }
+.worker-workspace :is(.worker-priority-high,.worker-attention-label) { color: var(--warning); font-weight: 500; }
+.worker-workspace .worker-task-next { padding: var(--space-4); margin-top: var(--space-4); border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--info); font-size: var(--text-support); line-height: 1.75; }
+.worker-workspace .worker-task-schedule { display: grid; gap: var(--space-3); padding: var(--space-4) 0; }
+.worker-workspace .worker-task-schedule p { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: var(--space-3); font-size: var(--text-caption); }
+.worker-workspace .worker-task-schedule span { color: var(--muted); }
+.worker-workspace .worker-task-schedule strong { font-weight: 500; color: var(--ink-secondary); line-height: 1.65; overflow-wrap: anywhere; }
+.worker-workspace .worker-task-card footer { margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--surface-line); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.worker-workspace .worker-task-card time { color: var(--muted); font-size: var(--text-caption); }
+.worker-workspace .worker-task-card footer strong { color: var(--accent); font-size: var(--text-support); font-weight: 600; }
+.worker-workspace .worker-task-center .filter-bar { background: var(--surface-subtle); border-color: transparent; padding: var(--space-4); }
+.worker-workspace .worker-filter-notice { margin-bottom: var(--space-4); color: var(--warning); font-size: var(--text-support); }
+.worker-workspace .detail-grid { grid-template-columns: minmax(0,1fr) 300px; gap: var(--space-5); }
+.worker-workspace .detail-main { gap: var(--space-5); }
+.worker-workspace .worker-execution { border-color: var(--accent-line); }
+.worker-workspace .worker-execution .form-fields { gap: var(--space-4); }
+.worker-workspace .worker-execution label > small { font-variant-numeric: tabular-nums; }
+.worker-workspace .worker-execution .form-fields > button { justify-self: start; }
+.worker-workspace .worker-execution .finish-action { padding-top: var(--space-4); margin-top: var(--space-5); }
+.worker-workspace .workflow-panel .workflow-expanded { background: var(--surface-subtle); padding: var(--space-4); border-radius: var(--radius-sm); border: 0; }
+.worker-workspace .workflow-panel h2 { font-size: 18px; }
+.worker-workspace .workflow-context { background: var(--surface-subtle); }
+.worker-workspace .worker-rework-context { padding: var(--space-5); border-radius: var(--radius); background: var(--warning-soft); border: 1px solid var(--surface-line); }
+.worker-workspace .worker-rework-context .eyebrow { color: var(--warning); letter-spacing: .025em; }
+.worker-workspace .worker-rework-context h2 { font-size: 19px; line-height: 1.4; font-weight: 600; margin-bottom: var(--space-3); }
+.worker-workspace .worker-rework-context > p:not(.eyebrow) { color: var(--ink-secondary); font-size: var(--text-support); line-height: 1.8; }
+.worker-workspace .worker-rework-context small { display: block; color: var(--muted); font-size: var(--text-caption); margin-block: var(--space-3); }
+.worker-workspace .repair-photo img { width: 100%; max-height: 320px; object-fit: contain; background: var(--surface-subtle); }
+.worker-workspace .service-flags { color: var(--warning); font-size: var(--text-support); }
+.worker-workspace .notice.success { border-left: 3px solid var(--success); }
+.worker-workspace .notice.error { background: var(--danger-soft); border-left: 3px solid var(--danger); }
+@keyframes worker-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 960px) {
+  .worker-workspace .detail-grid { grid-template-columns: minmax(0,1fr); }
+  .worker-workspace .worker-task-summary { grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-5) 0; }
+  .worker-workspace .worker-task-summary a:nth-child(2) { border-right: 0; }
+}
+@media (max-width: 620px) {
+  .worker-workspace .worker-welcome { flex-direction: column; align-items: flex-start; padding-top: var(--space-4); }
+  .worker-workspace .worker-task-summary a { padding-inline: var(--space-4); }
+  .worker-workspace .worker-task-summary strong { font-size: 34px; }
+  .worker-workspace .worker-task-schedule p { grid-template-columns: minmax(0,1fr); gap: var(--space-1); }
+  .worker-workspace .worker-execution .form-fields > button { width: 100%; }
+  .worker-workspace .worker-execution .finish-action button { width: 100%; }
+  .worker-workspace .worker-attention li a { flex-wrap: wrap; }
+  .worker-workspace .worker-task-card footer { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .worker-workspace .worker-welcome { animation: none; }
+  .worker-workspace :is(.worker-task-card,.worker-task-summary a) { transition: none; }
+  .worker-workspace .worker-task-card:is(:hover,:active) { transform: none; }
+}
+
+.worker-workspace .detail-surface { padding: var(--space-5); box-shadow: none; border-color: var(--surface-line); }

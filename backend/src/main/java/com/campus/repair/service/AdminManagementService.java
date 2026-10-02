@@ -1,6 +1,8 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.campus.repair.common.*;
 import com.campus.repair.dto.*;
@@ -11,7 +13,6 @@ import com.campus.repair.vo.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -32,7 +33,7 @@ public class AdminManagementService {
     private final PasswordEncoder passwords;
     private final OrderAccessService access;
     private final Clock clock;
-    private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
+    private LocalDateTime now(){return BusinessTime.now(clock);}
     private void requireAdmin(UserVO actor){access.requireAdmin(actor);}
     private static String text(String value){return value==null?null:value.strip();}
     private static void required(String value){if(value==null||value.isBlank())throw new BusinessException(ErrorCode.BAD_REQUEST);}
@@ -98,7 +99,9 @@ public class AdminManagementService {
             }else if(user.getRole()==UserRole.WORKER){required(input.skillType());coordinates(input.longitude(),input.latitude());
                 var worker=workers.selectOne(new LambdaQueryWrapper<WorkerEntity>().eq(WorkerEntity::getUserId,id));
                 if(worker==null)throw new BusinessException(ErrorCode.PROFILE_REQUIRED);
-                worker.setSkillType(input.skillType().strip());worker.setLongitude(input.longitude());worker.setLatitude(input.latitude());workers.updateById(worker);
+                workers.update(null,new LambdaUpdateWrapper<WorkerEntity>().eq(WorkerEntity::getId,worker.getId())
+                        .set(WorkerEntity::getSkillType,input.skillType().strip())
+                        .set(WorkerEntity::getLongitude,input.longitude()).set(WorkerEntity::getLatitude,input.latitude()));
             }
             users.updateById(user);
         }catch(DataIntegrityViolationException duplicate){throw new BusinessException(ErrorCode.CONFLICT);}

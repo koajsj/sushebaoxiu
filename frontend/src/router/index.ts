@@ -14,12 +14,12 @@ const routes: RouteRecordRaw[] = [
       : role === 'worker' ? () => import('../layouts/WorkerLayout.vue') : () => import('../layouts/AdminLayout.vue'),
     meta: { role },
     children: [
-      { path: '', component: role === 'admin' ? () => import('../views/OrderListView.vue') : () => import('../views/WorkspaceHome.vue'), props: { role },
-        meta: { title: { student: '学生服务', worker: '维修工作台', admin: '工单管理' }[role] } },
-      { path: 'orders', component: () => import('../views/OrderListView.vue'), props: { role }, meta: { title: role === 'worker' ? '我的任务' : '订单列表' } },
+      { path: '', component: role === 'admin' ? () => import('../views/DashboardView.vue') : () => import('../views/WorkspaceHome.vue'), props: role === 'admin' ? undefined : { role },
+        meta: { title: { student: '服务首页', worker: '任务工作台', admin: '运营中心' }[role] } },
+      { path: 'orders', component: () => import('../views/OrderListView.vue'), props: { role }, meta: { title: {student:'我的工单',worker:'我的任务',admin:'工单管理'}[role] } },
       ...(role === 'student' ? [{ path: 'orders/new', component: () => import('../views/CreateOrderView.vue'), meta: { title: '提交报修' } }] : []),
       ...(role === 'admin' ? [
-        { path: 'dashboard', component: () => import('../views/DashboardView.vue'), meta: { title: '数据驾驶舱' } },
+        { path: 'dashboard', component: () => import('../views/DashboardView.vue'), meta: { title: '数据与报表' } },
         { path: 'dispatch', component: () => import('../views/DispatchView.vue'), meta: { title: '智能派单' } },
         { path: 'map', component: () => import('../views/MapView.vue'), meta: { title: '校园任务地图' } },
         { path: 'manage', component: () => import('../views/ManagementView.vue'), meta: { title: '基础资料维护' } },

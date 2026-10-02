@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Select;
 
 @Mapper
 public interface StatisticsMapper {
+    String REPAIR_DURATION_SECONDS = "TIMESTAMPDIFF(SECOND,MIN(start_time),MAX(finish_time))";
     @Select("""
         SELECT COUNT(*) AS total,
           COALESCE(SUM(create_time >= #{start} AND create_time < #{end}),0) AS today,
@@ -22,7 +23,7 @@ public interface StatisticsMapper {
         """)
     Map<String,Object> overviewCounts(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Select("SELECT AVG(duration_seconds) FROM (SELECT TIMESTAMPDIFF(SECOND,MIN(start_time),MAX(finish_time)) AS duration_seconds FROM repair_record WHERE finish_time IS NOT NULL GROUP BY order_id,round_no) repairs")
+    @Select("SELECT AVG(duration_seconds) FROM (SELECT " + REPAIR_DURATION_SECONDS + " AS duration_seconds FROM repair_record WHERE finish_time IS NOT NULL GROUP BY order_id,round_no) repairs")
     Double averageRepairSeconds();
 
     @Select("SELECT DATE(create_time) AS day,COUNT(*) AS amount FROM repair_order WHERE create_time >= #{start} GROUP BY DATE(create_time) ORDER BY day")

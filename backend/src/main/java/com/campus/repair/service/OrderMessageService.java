@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -25,7 +26,7 @@ public class OrderMessageService {
     private final OrderAccessService access;
     private final Clock clock;
     public record Context(long orderId,String title,Long workerId,String workerName) {}
-    private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
+    private LocalDateTime now(){return BusinessTime.now(clock);}
     private RepairOrderEntity allowed(UserVO user,long orderId,boolean lock){
         var order=lock?orders.lockById(orderId):orders.selectById(orderId);
         access.requireView(user,order);return order;

@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.campus.repair.algorithm.DispatchAlgorithm;
 import com.campus.repair.common.*;
 import com.campus.repair.dto.DispatchRequest;
@@ -30,20 +31,18 @@ public class DispatchService {
 
     private LocalDateTime now() {
         // DATETIME(0) rounds fractions; truncate explicitly so a fresh snapshot is never in the future.
-        return LocalDateTime.ofInstant(clock.instant(), ZoneId.of("Asia/Shanghai")).withNano(0);
+        return BusinessTime.now(clock);
     }
     private RepairOrderEntity eligibleOrder(long id) {
-        var order = orders.lockById(id);
+        return requireEligible(orders.lockById(id));
+    }
+    private RepairOrderEntity eligibleOrderRead(long id) {
+        return requireEligible(orders.selectById(id));
+    }
+    private RepairOrderEntity requireEligible(RepairOrderEntity order) {
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND);
         OrderStatus.require(order.getStatus(), OrderStatus.WAIT_ASSIGN);
         if (order.getWorkerId() != null) throw new BusinessException(ErrorCode.CONFLICT);
-        return order;
-    }
-    private RepairOrderEntity eligibleOrderRead(long id) {
-        var order=orders.selectById(id);
-        if(order==null)throw new BusinessException(ErrorCode.NOT_FOUND);
-        OrderStatus.require(order.getStatus(),OrderStatus.WAIT_ASSIGN);
-        if(order.getWorkerId()!=null)throw new BusinessException(ErrorCode.CONFLICT);
         return order;
     }
     private static Double coordinate(BigDecimal value) { return value == null ? null : value.doubleValue(); }
@@ -51,16 +50,19 @@ public class DispatchService {
         var building = buildings.selectById(order.getBuildingId());
         var type = types.selectById(order.getTypeId());
         if (building == null || type == null) throw new BusinessException(ErrorCode.INVALID_REFERENCE);
+        return score(type, building, worker, load);
+    }
+    private DispatchAlgorithm.Scores score(RepairTypeEntity type, BuildingEntity building, WorkerEntity worker, long load) {
         return algorithm.score(new DispatchAlgorithm.Input(type.getName(), type.getDescription(), worker.getSkillType(),
                 coordinate(building.getLongitude()), coordinate(building.getLatitude()),
                 coordinate(worker.getLongitude()), coordinate(worker.getLatitude()), load, worker.getScore().doubleValue()));
     }
-    private DispatchRecordEntity save(long orderId, long workerId, DispatchAlgorithm.Scores scores, String batch, boolean confirmed, int round) {
+    private DispatchRecordEntity recommendation(long orderId, long workerId, DispatchAlgorithm.Scores scores, String batch, boolean confirmed, int round) {
         var row = new DispatchRecordEntity();
         row.setOrderId(orderId); row.setWorkerId(workerId); row.setSkillScore(scores.skillScore());
         row.setDistanceScore(scores.distanceScore()); row.setLoadScore(scores.loadScore()); row.setRatingScore(scores.ratingScore());
         row.setTotalScore(scores.totalScore()); row.setReason(scores.reason()); row.setRecommendationBatch(batch);
-        row.setRoundNo(round);row.setConfirmed(confirmed); row.setCreateTime(now()); row.setMethod("SMART");row.setDecision(confirmed?"ASSIGNED":"RECOMMENDED");records.insert(row);
+        row.setRoundNo(round);row.setConfirmed(confirmed); row.setCreateTime(now()); row.setMethod("SMART");row.setDecision(confirmed?"ASSIGNED":"RECOMMENDED");
         return row;
     }
     private WorkerRecommendationVO view(DispatchRecordEntity row, WorkerEntity worker, String name, long load, Double distance) {
@@ -81,9 +83,7 @@ public class DispatchService {
         return rows.stream().filter(row->candidates.containsKey(row.getWorkerId())).map(row->{
             var candidate=candidates.get(row.getWorkerId());var worker=candidate.worker();
             long load=loads.getOrDefault(worker.getId(),0L);
-            var fresh=algorithm.score(new DispatchAlgorithm.Input(type.getName(),type.getDescription(),worker.getSkillType(),
-                    coordinate(building.getLongitude()),coordinate(building.getLatitude()),
-                    coordinate(worker.getLongitude()),coordinate(worker.getLatitude()),load,worker.getScore().doubleValue()));
+            var fresh=score(type,building,worker,load);
             return view(row,worker,candidate.name(),load,fresh.distanceKm());
         }).sorted(Comparator.comparing(WorkerRecommendationVO::totalScore).reversed()
                 .thenComparing(WorkerRecommendationVO::distanceKm,Comparator.nullsLast(Comparator.naturalOrder()))
@@ -112,14 +112,8 @@ public class DispatchService {
         for (var candidate : data.available()) {
             var worker = candidate.worker();
             long load = loads.getOrDefault(worker.getId(), 0L);
-            var scores = algorithm.score(new DispatchAlgorithm.Input(type.getName(), type.getDescription(), worker.getSkillType(),
-                    coordinate(building.getLongitude()), coordinate(building.getLatitude()),
-                    coordinate(worker.getLongitude()), coordinate(worker.getLatitude()), load, worker.getScore().doubleValue()));
-            var row=new DispatchRecordEntity();row.setOrderId(orderId);row.setWorkerId(worker.getId());
-            row.setSkillScore(scores.skillScore());row.setDistanceScore(scores.distanceScore());row.setLoadScore(scores.loadScore());
-            row.setRatingScore(scores.ratingScore());row.setTotalScore(scores.totalScore());row.setReason(scores.reason());
-            row.setRecommendationBatch(batch);row.setRoundNo(order.getDispatchRound()+1);row.setConfirmed(false);
-            row.setCreateTime(now());row.setMethod("SMART");row.setDecision("RECOMMENDED");calculated.add(row);
+            var scores = score(type,building,worker,load);
+            calculated.add(recommendation(orderId,worker.getId(),scores,batch,false,order.getDispatchRound()+1));
         }
         if(calculated.isEmpty())return List.of();
         return views(order,snapshots.persist(orderId,order.getDispatchRound()+1,calculated,refresh));
@@ -148,7 +142,8 @@ public class DispatchService {
                 || snapshot.getLoadScore().compareTo(fresh.loadScore()) != 0
                 || snapshot.getRatingScore().compareTo(fresh.ratingScore()) != 0)
             throw new BusinessException(ErrorCode.RECOMMENDATION_STALE);
-        var confirmed = save(order.getId(), worker.getId(), fresh, snapshot.getRecommendationBatch(), true, order.getDispatchRound()+1);
+        var confirmed = recommendation(order.getId(), worker.getId(), fresh, snapshot.getRecommendationBatch(), true, order.getDispatchRound()+1);
+        records.insert(confirmed);
         order.setWorkerId(worker.getId()); order.setStatus(OrderStatus.ASSIGNED.name()); order.setUpdateTime(currentTime);
         workflow.assigned(order,user,confirmed);
         return view(confirmed, worker, data.name(worker), load, fresh.distanceKm());

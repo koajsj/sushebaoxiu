@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.ErrorCode;
@@ -8,7 +9,6 @@ import com.campus.repair.mapper.DispatchRecordMapper;
 import com.campus.repair.mapper.RepairOrderMapper;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -20,7 +20,7 @@ public class DispatchSnapshotService {
     private final RepairOrderMapper orders;
     private final DispatchRecordMapper records;
     private final Clock clock;
-    private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
+    private LocalDateTime now(){return BusinessTime.now(clock);}
 
     public List<DispatchRecordEntity> current(long orderId,int nextRound){
         var latest=records.selectList(new LambdaQueryWrapper<DispatchRecordEntity>()

@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -42,13 +43,14 @@ public class ImageService {
         this.directory = Path.of(directory).toAbsolutePath().normalize();
     }
 
-    @Transactional
+    @Transactional(isolation=Isolation.READ_COMMITTED)
     public Map<String, String> upload(UserVO user, MultipartFile file) {
         if (user.role() == UserRole.ADMIN) throw new BusinessException(ErrorCode.FORBIDDEN);
         if (user.role() == UserRole.STUDENT) access.student(user);
         else access.requireAvailable(access.worker(user));
         var encoded = ImageCodec.encode(file);
         users.lockById(user.id());
+        // Concurrent uploads serialize here; count must see the previous upload's commit.
         if(images.unboundCount(user.id())>=10)throw new BusinessException(ErrorCode.UPLOAD_LIMIT);
         var image = new RepairImageEntity();
         image.setId(UUID.randomUUID().toString()); image.setOwnerId(user.id());

@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -26,7 +27,7 @@ public class NotificationService {
     private final UserMapper users;
     private final Clock clock;
     private final ApplicationEventPublisher publisher;
-    private LocalDateTime now(){return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0);}
+    private LocalDateTime now(){return BusinessTime.now(clock);}
 
     /** Only queue immutable events here. The database write runs after the order commits. */
     public void publish(RepairOrderEntity order,OrderEventEntity event) {
@@ -42,6 +43,10 @@ public class NotificationService {
         String key=event.getAction()+":"+event.getOrderId()+":"+event.getRoundNo()+":"+event.getId()+":"+userId;
         publisher.publishEvent(new BusinessNotificationEvent(userId,event.getAction(),event.getOrderId(),event.getId(),title,content.strip(),key));
     }
+    private void queueAdmins(OrderEventEntity event,String title,String content) {
+        users.selectList(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getRole,UserRole.ADMIN).eq(UserEntity::getStatus,1))
+                .forEach(admin->queue(event,admin.getId(),title,content));
+    }
     private void onOrderEvent(RepairOrderEntity order,OrderEventEntity event) {
         String action=event.getAction();
         if(!Set.of("SUBMIT","AUDIT","ASSIGN","FINISH").contains(action)) return;
@@ -51,8 +56,7 @@ public class NotificationService {
         switch(action) {
             case "SUBMIT" -> {
                 queue(event,student.getUserId(),"报修提交成功",ref+" 已提交，等待审核。 ");
-                users.selectList(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getRole,UserRole.ADMIN).eq(UserEntity::getStatus,1))
-                        .forEach(admin->queue(event,admin.getId(),"新报修待审核",ref+" 已提交，请及时审核。"));
+                queueAdmins(event,"新报修待审核",ref+" 已提交，请及时审核。");
             }
             case "AUDIT" -> queue(event,student.getUserId(),"报修审核完成",ref+" 已通过审核，等待派单。");
             case "ASSIGN" -> {
@@ -85,9 +89,7 @@ public class NotificationService {
         if(Set.of("AUDIT_REJECT","RESUBMIT","REWORK_ORIGINAL","REWORK_REDISPATCH","APPOINTMENT_PROPOSE","RECALL").contains(action))queue(event,student.getUserId(),title,content);
         if(worker!=null&&Set.of("ACCEPTANCE_FAIL","REWORK_ORIGINAL","APPOINTMENT_ACCEPT","APPOINTMENT_REJECT","RECALL").contains(action))queue(event,worker.getUserId(),title,content);
         if(Set.of("RESUBMIT","WORKER_REJECT","SLA_RESPONSE","SLA_START","SLA_REPAIR","ACCEPTANCE_FAIL","REWORK_REDISPATCH").contains(action)) {
-            String text=content;
-            users.selectList(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getRole,UserRole.ADMIN).eq(UserEntity::getStatus,1))
-                    .forEach(admin->queue(event,admin.getId(),title,text));
+            queueAdmins(event,title,content);
         }
     }
     @Transactional(propagation=Propagation.REQUIRES_NEW)
@@ -108,10 +110,13 @@ public class NotificationService {
         var page=notifications.selectPage(new Page<>(pageNumber,size),query);
         long unread=notifications.selectCount(new LambdaQueryWrapper<NotificationEntity>()
                 .eq(NotificationEntity::getUserId,user.id()).eq(NotificationEntity::getReadStatus,0));
-        var latest=notifications.selectList(new LambdaQueryWrapper<NotificationEntity>().eq(NotificationEntity::getUserId,user.id())
-                .orderByDesc(NotificationEntity::getId).last("LIMIT 1"));
         return Map.of("records",page.getRecords(),"total",page.getTotal(),"unreadCount",unread,
-                "page",page.getCurrent(),"size",page.getSize(),"latestId",latest.isEmpty()?0L:latest.get(0).getId());
+                "page",page.getCurrent(),"size",page.getSize(),"latestId",latestNotificationId(user.id()));
+    }
+    private long latestNotificationId(long userId) {
+        var latest=notifications.selectList(new LambdaQueryWrapper<NotificationEntity>().eq(NotificationEntity::getUserId,userId)
+                .orderByDesc(NotificationEntity::getId).last("LIMIT 1"));
+        return latest.isEmpty()?0L:latest.get(0).getId();
     }
     @Transactional
     public void markRead(UserVO user,long id){
@@ -123,10 +128,9 @@ public class NotificationService {
     }
     @Transactional
     public void markAllRead(UserVO user,long throughId){
-        var latest=notifications.selectList(new LambdaQueryWrapper<NotificationEntity>().eq(NotificationEntity::getUserId,user.id())
-                .orderByDesc(NotificationEntity::getId).last("LIMIT 1"));
-        if(latest.isEmpty())return;
-        long cutoff=Math.min(throughId,latest.get(0).getId());
+        long latest=latestNotificationId(user.id());
+        if(latest==0)return;
+        long cutoff=Math.min(throughId,latest);
         notifications.update(null,new LambdaUpdateWrapper<NotificationEntity>()
                 .eq(NotificationEntity::getUserId,user.id()).eq(NotificationEntity::getReadStatus,0)
                 .le(NotificationEntity::getId,cutoff).set(NotificationEntity::getReadStatus,1));

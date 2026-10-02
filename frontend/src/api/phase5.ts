@@ -1,8 +1,7 @@
-import { http, ApiError } from '../utils/request'
+import { http, unwrap } from '../utils/request'
 import type { ApiResult } from '../types'
 import type { NotificationList, OrderMessage, Overview, TrendPoint, TypeCount, WorkerCount } from '../types/phase5'
 
-function unwrap<T>(result:ApiResult<T>):T { if(result.data===null) throw new ApiError('服务返回内容不完整'); return result.data }
 export async function getOverview(){return unwrap((await http.get<ApiResult<Overview>>('/admin/statistics/overview')).data)}
 export async function getTrend(){return unwrap((await http.get<ApiResult<TrendPoint[]>>('/admin/statistics/trend')).data)}
 export async function getTypeStats(){return unwrap((await http.get<ApiResult<TypeCount[]>>('/admin/statistics/types')).data)}

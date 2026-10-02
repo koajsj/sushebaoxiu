@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -34,7 +35,7 @@ public class RepairOrderService {
     private final Clock clock;
     private final OrderWorkflowService workflow;
 
-    private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneId.of("Asia/Shanghai")).withNano(0); }
+    private LocalDateTime now() { return BusinessTime.now(clock); }
     private RepairOrderEntity locked(long id) {
         var order = orders.lockById(id);
         if (order == null) throw new BusinessException(ErrorCode.NOT_FOUND);
@@ -54,8 +55,7 @@ public class RepairOrderService {
         if(input.requestKey()==null)throw new BusinessException(ErrorCode.BAD_REQUEST);
         String hash=RequestFingerprint.of(String.valueOf(input.typeId()),input.title().strip(),input.description().strip(),
                 input.imageUrl(),String.valueOf(input.buildingId()),input.roomNo().strip(),input.priority());
-        var existing=orders.selectOne(new LambdaQueryWrapper<RepairOrderEntity>()
-                .eq(RepairOrderEntity::getStudentId,student.getId()).eq(RepairOrderEntity::getRequestKey,input.requestKey()));
+        var existing=findCreatedRequest(student.getId(),input.requestKey());
         if(existing!=null)return original(existing,hash);
         if (types.selectById(input.typeId()) == null || buildings.selectById(input.buildingId()) == null)
             throw new BusinessException(ErrorCode.INVALID_REFERENCE);
@@ -68,8 +68,7 @@ public class RepairOrderService {
         order.setCreateTime(now()); order.setUpdateTime(order.getCreateTime());
         try { orders.insert(order); }
         catch(DuplicateKeyException duplicate) {
-            existing=orders.selectOne(new LambdaQueryWrapper<RepairOrderEntity>()
-                    .eq(RepairOrderEntity::getStudentId,student.getId()).eq(RepairOrderEntity::getRequestKey,input.requestKey()));
+            existing=findCreatedRequest(student.getId(),input.requestKey());
             if(existing==null)throw duplicate;
             return original(existing,hash);
         }
@@ -77,6 +76,10 @@ public class RepairOrderService {
         if (order.getImageUrl() != null) orders.updateById(order);
         event(order, user, "SUBMIT");
         return views(List.of(order)).get(0);
+    }
+    private RepairOrderEntity findCreatedRequest(long studentId,String requestKey) {
+        return orders.selectOne(new LambdaQueryWrapper<RepairOrderEntity>()
+                .eq(RepairOrderEntity::getStudentId,studentId).eq(RepairOrderEntity::getRequestKey,requestKey));
     }
     private OrderVO original(RepairOrderEntity row,String hash) {
         if(!hash.equals(row.getRequestHash()))throw new BusinessException(ErrorCode.IDEMPOTENCY_CONFLICT);

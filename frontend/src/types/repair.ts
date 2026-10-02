@@ -5,9 +5,12 @@ export const statusLabels = {
 export type OrderStatus = keyof typeof statusLabels
 export const phaseLabels={CREATED:'草稿',WAIT_AUDIT:'待审核',WAIT_DISPATCH:'待派单',WAIT_ACCEPT:'待接单',WAIT_START:'待开工',PROCESSING:'维修中',WAIT_CONFIRM:'待验收',FINISHED:'已完成',COMMENTED:'已评价',REJECTED:'审核驳回',REWORK_PENDING:'待安排返工'} as const
 export type OrderPhase=keyof typeof phaseLabels
-export function orderStatusLabel(order: { status: OrderStatus; workerId: number|null; phase?:OrderPhase }) {
+export type OrderStatusSummary = { status: OrderStatus; workerId: number|null; phase?:OrderPhase }
+export function orderStatusLabel(order: OrderStatusSummary) {
   return order.phase?phaseLabels[order.phase]:order.status==='WAIT_ASSIGN'?(order.workerId?'待接单':'待派单'):statusLabels[order.status]
 }
+export const priorityLabels = { LOW: '不紧急', NORMAL: '普通', HIGH: '较紧急' } as const
+export const overdueLabels = { RESPONSE: '接单超时', START: '待开工超时', REPAIR: '维修超时' } as const
 export interface RepairOrder {
   id: number; studentId: number; typeId: number; title: string; description: string
   imageUrl: string | null; buildingId: number; roomNo: string; priority: 'LOW'|'NORMAL'|'HIGH'
@@ -16,6 +19,9 @@ export interface RepairOrder {
   responseDueTime:string|null; startDueTime:string|null; repairDueTime:string|null; overdueType:'RESPONSE'|'START'|'REPAIR'|null
   appointmentStart:string|null; appointmentEnd:string|null; appointmentStatus:'NONE'|'PROPOSED'|'ACCEPTED'|'REJECTED'; appointmentReason:string|null; appointmentVersion:number
   typeName: string; buildingName: string; workerName: string|null; studentName: string
+}
+export function isAwaitingAcceptance(order: Pick<RepairOrder, 'status'|'acceptedTime'>) {
+  return !order.acceptedTime && ['WAIT_ASSIGN', 'ASSIGNED'].includes(order.status)
 }
 export interface RepairRecord { roundNo:number; id: number; orderId: number; workerId: number; content: string; imageUrl: string|null; startTime: string; finishTime: string|null }
 export interface Evaluation { id: number; orderId: number; studentId: number; score: number; content: string; createTime: string }

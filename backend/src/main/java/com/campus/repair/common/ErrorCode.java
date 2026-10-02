@@ -26,6 +26,7 @@ public enum ErrorCode {
     NOT_FOUND(40400, "请求的资源不存在", HttpStatus.NOT_FOUND),
     METHOD_NOT_ALLOWED(40500, "请求方式不支持", HttpStatus.METHOD_NOT_ALLOWED),
     NOT_ACCEPTABLE(40600, "响应格式不支持", HttpStatus.NOT_ACCEPTABLE),
+    EXPORT_TOO_LARGE(41301, "数据量超过Excel单表容量，无法生成完整报表", HttpStatus.PAYLOAD_TOO_LARGE),
     UNSUPPORTED_MEDIA_TYPE(41500, "请求内容类型不支持", HttpStatus.UNSUPPORTED_MEDIA_TYPE),
     INTERNAL_ERROR(50000, "服务暂时不可用，请稍后重试", HttpStatus.INTERNAL_SERVER_ERROR),
     DATABASE_UNAVAILABLE(50300, "数据库暂时不可用", HttpStatus.SERVICE_UNAVAILABLE);

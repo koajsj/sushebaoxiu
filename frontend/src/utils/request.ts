@@ -9,6 +9,11 @@ export class ApiError extends Error {
   }
 }
 
+export function unwrap<T>(result: ApiResult<T>): T {
+  if (result.data === null) throw new ApiError('服务返回内容不完整')
+  return result.data
+}
+
 let unauthorizedHandler: (() => void) | undefined
 let currentToken: () => string = readToken
 export function setUnauthorizedHandler(handler: () => void, tokenProvider: () => string = readToken) {

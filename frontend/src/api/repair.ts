@@ -1,11 +1,7 @@
-import { http, ApiError } from '../utils/request'
+import { http, ApiError, unwrap } from '../utils/request'
 import type { ApiResult, PageResult, Role } from '../types'
 import type { Catalog, CreateOrder, OrderDetail, OrderFilter, RepairOrder, Summary, WorkerOption } from '../types/repair'
 
-function unwrap<T>(result: ApiResult<T>): T {
-  if (result.data === null) throw new ApiError('服务返回内容不完整')
-  return result.data
-}
 export async function getCatalog() { return unwrap((await http.get<ApiResult<Catalog>>('/catalog')).data) }
 export async function getOrders(role: Role, params: OrderFilter = {}) {
   return unwrap((await http.get<ApiResult<PageResult<RepairOrder>>>(`/${role}/orders`, { params })).data)

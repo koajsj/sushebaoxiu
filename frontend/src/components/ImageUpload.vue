@@ -17,9 +17,19 @@ async function choose(event: Event) {
   finally { uploading.value=false; emit('pending',false); input.value='' }
 }
 </script>
-<template><div class="image-upload">
-  <ProtectedImage v-if="props.modelValue" :url="props.modelValue" alt="已上传的现场图片" />
-  <label class="upload-drop" :class="{ 'is-loading':uploading }"><span>{{ uploading ? '正在上传…' : props.modelValue ? '更换图片' : '添加现场图片' }}</span><small>PNG 或 JPEG · 最大 5MB · 可选</small><input type="file" accept="image/png,image/jpeg" :disabled="uploading||props.disabled" aria-label="上传现场图片" @change="choose" /></label>
-  <button v-if="props.modelValue" class="text-button" type="button" :disabled="uploading||props.disabled" @click="emit('update:modelValue','')">移除图片</button>
+<template><div class="image-upload" :aria-busy="uploading">
+  <div class="upload-layout">
+    <div v-if="props.modelValue" class="upload-preview">
+      <ProtectedImage :url="props.modelValue" alt="已上传的现场图片" />
+      <footer><span>已添加 1 张现场图片</span><button class="text-button danger-action" type="button" :disabled="uploading||props.disabled" @click="emit('update:modelValue','')">移除图片</button></footer>
+    </div>
+    <label class="upload-drop" :class="{ 'is-loading':uploading }">
+      <span class="upload-symbol" aria-hidden="true">{{ props.modelValue ? '↻' : '+' }}</span>
+      <strong role="status">{{ uploading ? '正在上传现场图片…' : props.modelValue ? '更换现场图片' : '添加现场图片' }}</strong>
+      <small>点击选择，或拖入图片<br />PNG / JPEG · 最大 5MB · 可选</small>
+      <progress v-if="uploading" aria-label="正在上传现场图片" />
+      <input type="file" accept="image/png,image/jpeg" :disabled="uploading||props.disabled" aria-label="上传现场图片" @change="choose" />
+    </label>
+  </div>
   <p v-if="error" class="form-error" role="alert">{{ error }}</p>
 </div></template>

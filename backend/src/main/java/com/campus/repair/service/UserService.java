@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.campus.repair.common.BusinessException;
 import com.campus.repair.common.ErrorCode;
@@ -8,8 +9,6 @@ import com.campus.repair.mapper.UserMapper;
 import com.campus.repair.dto.ChangePasswordRequest;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ public class UserService {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         user.setPassword(passwordEncoder.encode(input.newPassword()));
         user.setTokenVersion(user.getTokenVersion()+1);
-        user.setUpdateTime(LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0));
+        user.setUpdateTime(BusinessTime.now(clock));
         mapper.updateById(user);
     }
 }

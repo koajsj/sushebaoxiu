@@ -10,7 +10,9 @@ frontend/*.tsbuildinfo
 .env
 .env.*
 !.env.example
+!backend/.env.local.example
 logs/
+.run/
 .runtime/
 *.log
 backend/uploads/

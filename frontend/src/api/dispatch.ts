@@ -1,11 +1,7 @@
-import { http, ApiError } from '../utils/request'
+import { http, unwrap } from '../utils/request'
 import type { ApiResult, PageResult } from '../types'
 import type { CampusBuilding, MapOrder, MapWorker, WorkerRecommendation } from '../types/dispatch'
 
-function unwrap<T>(result:ApiResult<T>):T {
-  if(result.data===null) throw new ApiError('服务返回内容不完整')
-  return result.data
-}
 export async function getRecommendations(orderId:number) {
   return unwrap((await http.get<ApiResult<WorkerRecommendation[]>>(`/admin/dispatch/recommend/${orderId}`)).data)
 }

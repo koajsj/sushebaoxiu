@@ -1,0 +1,6 @@
+server:
+  address: 127.0.0.1
+
+spring:
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${DB_PORT:13306}/${DB_NAME:campus_repair}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai

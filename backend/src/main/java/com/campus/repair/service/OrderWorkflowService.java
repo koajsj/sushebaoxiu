@@ -1,5 +1,6 @@
 package com.campus.repair.service;
 
+import com.campus.repair.utils.BusinessTime;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.campus.repair.common.*;
@@ -11,6 +12,7 @@ import com.campus.repair.vo.UserVO;
 import java.time.*;
 import java.util.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** Incremental exception/collaboration flows; every mutation holds the same order row lock. */
@@ -29,7 +31,7 @@ public class OrderWorkflowService {
     private final NotificationService notifications;
     private final SlaProperties sla;
     private final Clock clock;
-    public LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(),ZoneId.of("Asia/Shanghai")).withNano(0); }
+    public LocalDateTime now() { return BusinessTime.now(clock); }
     private RepairOrderEntity locked(long id) {
         var order=orders.lockById(id);
         if(order==null)throw new BusinessException(ErrorCode.NOT_FOUND);
@@ -148,7 +150,7 @@ public class OrderWorkflowService {
         if("ASSIGNED".equals(order.getStatus()))order.setStartDueTime(startDeadline(order));save(order);
         emit(order,user,"APPOINTMENT_PROPOSE",input.start()+" 至 "+input.end()+"（校园时间）");
     }
-    @Transactional
+    @Transactional(isolation=Isolation.READ_COMMITTED)
     public void respond(UserVO user,long id,AppointmentResponse input) {
         var order=locked(id);access.requireStudentOwner(user,order);
         if(!Set.of("ASSIGNED","PROCESSING").contains(order.getStatus())||!"PROPOSED".equals(order.getAppointmentStatus())
@@ -156,6 +158,7 @@ public class OrderWorkflowService {
         if(!input.accepted()&&(input.reason()==null||input.reason().isBlank()))throw new BusinessException(ErrorCode.BAD_REQUEST);
         if(input.accepted()) {
             workers.lockById(order.getWorkerId());
+            // Recheck after the worker lock using the latest committed appointments.
             if(orders.appointmentConflicts(order.getWorkerId(),id,order.getAppointmentStart(),order.getAppointmentEnd())>0)
                 throw new BusinessException(ErrorCode.APPOINTMENT_CONFLICT);
         }

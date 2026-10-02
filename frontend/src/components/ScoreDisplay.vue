@@ -8,11 +8,11 @@ function animate() {
   cancelAnimationFrame(frame)
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) {displayed.value=props.value;return}
   const from=displayed.value,target=props.value,start=performance.now()
-  const tick=(time:number)=>{const progress=Math.min(1,(time-start)/260);displayed.value=from+(target-from)*(1-Math.pow(1-progress,3));if(progress<1)frame=requestAnimationFrame(tick)}
+  const tick=(time:number)=>{const progress=Math.min(1,(time-start)/180);displayed.value=from+(target-from)*(1-Math.pow(1-progress,3));if(progress<1)frame=requestAnimationFrame(tick)}
   frame=requestAnimationFrame(tick)
 }
 onMounted(()=>{mounted=true;displayed.value=0;animate()})
 watch(()=>props.value,animate)
 onBeforeUnmount(()=>{mounted=false;cancelAnimationFrame(frame)})
 </script>
-<template><span class="score-display" :class="{large}" :aria-label="`${label||'评分'} ${value.toFixed(2)}分`"><strong aria-hidden="true">{{ displayed.toFixed(1) }}</strong><span>{{ label||'综合评分' }}</span></span></template>
+<template><span class="score-display" :class="{large}" :aria-label="`${label||'评分'} ${value.toFixed(2)}分`"><strong aria-hidden="true">{{ displayed.toFixed(1) }}<small v-if="large">/100</small></strong><span>{{ label||'综合评分' }}</span></span></template>

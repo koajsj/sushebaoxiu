@@ -1,0 +1,127 @@
+/* Student-only composition. Tokens and business controls stay owned by UI-1. */
+.student-workspace .workspace-content { padding-top: var(--space-6); }
+.student-workspace .business-page { max-width: 1100px; }
+.student-workspace .page-heading { margin: var(--space-2) 0 var(--space-6); }
+.student-workspace .page-heading h1 { font-size: var(--text-page); }
+.student-workspace .workspace-menu .el-menu-item { min-height: 44px; }
+.student-workspace .student-home { display: grid; gap: var(--space-6); }
+.student-workspace .student-welcome { min-height: 200px; }
+.student-workspace .student-welcome .campus-hero-content { max-width: 85%; padding: var(--space-6); }
+.student-workspace .student-welcome h1 { margin: var(--space-3) 0; font-size: var(--text-page); line-height: 1.25; letter-spacing: -.035em; font-weight: 600; text-wrap: balance; }
+.student-workspace .student-welcome p { color: var(--hero-muted); font-size: var(--text-body); line-height: 1.7; }
+.student-workspace .section-heading { flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.student-workspace .section-heading h2 { font-size: var(--text-section); }
+.student-workspace :is(.student-current-card, .student-order-card, .student-calm-state, .student-loading) { min-width: 0; background: var(--surface); border: 1px solid var(--surface-line); border-radius: var(--radius); padding: var(--space-5); }
+.student-workspace .student-current-card { border-color: var(--accent-line); padding: var(--space-6); }
+.student-workspace .student-current-card header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.student-workspace .student-current-card .eyebrow { margin: 0; letter-spacing: .025em; }
+.student-workspace .student-current-card h2 { margin-top: var(--space-4); font-size: 26px; line-height: 1.4; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.student-workspace .student-current-place { color: var(--muted); margin-top: var(--space-2); }
+.student-workspace .student-current-next { margin-top: var(--space-5); padding: var(--space-4); border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--info); line-height: 1.75; }
+.student-workspace .student-current-facts { display: grid; grid-template-columns: minmax(140px, .7fr) minmax(0, 1.3fr); gap: var(--space-5); margin: var(--space-5) 0; }
+.student-workspace .student-current-card footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4); }
+.student-workspace .student-current-card footer > span { color: var(--muted); font-size: var(--text-caption); }
+.student-workspace .student-quick-actions { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-4); }
+.student-workspace .student-quick-actions a { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5); border-radius: var(--radius); transition: background var(--motion-fast), transform var(--motion-fast); }
+.student-workspace .student-quick-primary { background: var(--accent); color: var(--hero-ink); }
+.student-workspace .student-quick-primary:hover { background: var(--accent-hover); }
+.student-workspace .student-quick-secondary { border: 1px solid var(--surface-line); background: var(--surface); }
+.student-workspace .student-quick-secondary:hover { background: var(--surface-subtle); }
+.student-workspace .student-quick-actions a:active { transform: scale(.99); }
+.student-workspace .student-quick-actions a > div { flex: 1; min-width: 0; display: grid; gap: var(--space-2); }
+.student-workspace .student-quick-actions strong { font-size: 18px; font-weight: 600; }
+.student-workspace .student-quick-actions div > span { font-size: var(--text-support); line-height: 1.6; }
+.student-workspace .student-quick-primary div > span { color: var(--hero-muted); }
+.student-workspace .student-quick-secondary div > span { color: var(--muted); }
+.student-workspace .student-quick-symbol { font-size: 30px; }
+.student-workspace .student-order-card { display: flex; flex-direction: column; padding: var(--space-5); color: var(--ink); transition: border-color var(--motion-fast), transform var(--motion-fast); }
+.student-workspace .student-order-card:hover { border-color: var(--accent-line); transform: translateY(-1px); }
+.student-workspace .student-order-card:active { transform: translateY(0); }
+.student-workspace .student-order-card header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.student-workspace .student-order-card header > span { color: var(--muted); font-size: var(--text-caption); }
+.student-workspace .student-order-card h2 { margin: var(--space-4) 0 var(--space-2); font-size: var(--text-section); font-weight: 600; line-height: 1.4; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.student-workspace .student-order-place { color: var(--muted); font-size: var(--text-support); }
+.student-workspace .student-order-next { margin: var(--space-4) 0; line-height: 1.75; color: var(--ink-secondary); flex: 1; }
+.student-workspace .student-order-owner { display: flex; gap: var(--space-2); align-items: center; font-size: var(--text-support); }
+.student-workspace .student-avatar { display: inline-grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.student-workspace .student-order-card footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); padding-top: var(--space-4); margin-top: var(--space-4); border-top: 1px solid var(--surface-line); }
+.student-workspace .student-order-card time { color: var(--muted); font-size: var(--text-caption); }
+.student-workspace .student-order-card footer strong { color: var(--accent); font-size: var(--text-support); font-weight: 600; }
+.student-workspace .student-calm-state { background: var(--surface-subtle); border-color: transparent; }
+.student-workspace .student-calm-state h3 { font-size: 18px; font-weight: 600; margin-bottom: var(--space-2); }
+.student-workspace .student-calm-state p { color: var(--muted); line-height: 1.75; }
+.student-workspace .student-notice-guide { border-left: 2px solid var(--accent-line); padding: var(--space-2) 0 var(--space-2) var(--space-4); }
+.student-workspace .student-notice-guide strong { font-weight: 600; font-size: var(--text-support); }
+.student-workspace .student-notice-guide p { color: var(--muted); margin-top: var(--space-2); font-size: var(--text-support); line-height: 1.75; }
+.student-workspace .student-list-guide { margin: 0 0 var(--space-5); color: var(--muted); font-size: var(--text-support); }
+.student-workspace .student-recent-count { margin-bottom: var(--space-4); color: var(--muted); font-size: var(--text-caption); }
+.student-workspace .student-order-center .filter-bar { padding: var(--space-4); background: var(--surface-subtle); border-color: transparent; }
+.student-workspace .student-loading { display: grid; gap: var(--space-4); color: var(--muted); min-height: 120px; align-content: center; }
+.student-workspace .student-skeleton { width: min(240px, 60%); height: 22px; border-radius: var(--radius-sm); background: var(--surface-line); }
+.student-workspace .student-welcome { animation: student-arrive var(--motion-enter) var(--ease-out) backwards; }
+.student-workspace .student-create { max-width: 940px; }
+.student-workspace .student-create .wizard-progress { gap: var(--space-3); margin-block: var(--space-6); }
+.student-workspace .student-create .wizard-surface { padding: var(--space-6); border-radius: var(--radius-lg); }
+.student-workspace .student-create .wizard-step-heading h2 { font-size: 26px; margin-bottom: var(--space-3); }
+.student-workspace .student-create .wizard-step-heading { animation: student-arrive var(--motion) var(--ease-out) backwards; }
+.student-workspace .student-create .wizard-progress li::after { top: 16px; }
+.student-workspace .student-fault-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+.student-workspace .student-fault-choice { display: flex; align-items: flex-start; gap: var(--space-4); padding: var(--space-5); border: 1px solid var(--surface-line); border-radius: var(--radius); color: var(--ink); background: var(--surface); cursor: pointer; text-align: left; transition: border-color var(--motion-fast), background var(--motion-fast), transform var(--motion-fast); }
+.student-workspace .student-fault-choice:hover { border-color: var(--accent-line); background: var(--surface-subtle); }
+.student-workspace .student-fault-choice.selected { border-color: var(--accent); background: var(--accent-soft); }
+.student-workspace .student-fault-choice:active { transform: scale(.99); }
+.student-workspace .student-fault-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-subtle); color: var(--accent); font-size: 20px; flex-shrink: 0; }
+.student-workspace .selected .student-fault-symbol { background: var(--surface); }
+.student-workspace .student-fault-copy { flex: 1; min-width: 0; display: grid; gap: var(--space-2); }
+.student-workspace .student-fault-copy strong { font-size: 16px; font-weight: 600; }
+.student-workspace .student-fault-copy small { color: var(--muted); line-height: 1.65; font-size: var(--text-caption); overflow-wrap: anywhere; }
+.student-workspace .student-fault-check { font-size: 16px; color: var(--accent); }
+.student-workspace .student-create .form-fields { max-width: 680px; }
+.student-workspace .student-create .form-fields label { gap: var(--space-3); }
+.student-workspace .student-create :is(input[aria-invalid=true], textarea[aria-invalid=true]) { border-color: var(--danger); }
+.student-workspace .student-create .priority-options { gap: var(--space-3); }
+.student-workspace .student-create .priority-options label { padding: var(--space-3) var(--space-4); border: 1px solid var(--surface-line); border-radius: var(--radius-sm); cursor: pointer; background: var(--surface); }
+.student-workspace .student-create .priority-options label.selected { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent); }
+.student-workspace .student-location-preview { display: grid; gap: var(--space-2); padding: var(--space-5); border-radius: var(--radius); background: var(--surface-subtle); }
+.student-workspace .student-location-preview strong { font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.student-workspace .student-upload-step { display: grid; gap: var(--space-4); }
+.student-workspace .student-create .repair-photo img { width: 100%; max-height: 320px; object-fit: contain; }
+.student-workspace .student-upload-feedback { color: var(--info); font-size: var(--text-support); }
+.student-workspace .student-submit-summary { display: grid; gap: var(--space-5); }
+.student-workspace .student-submit-summary h3 { font-size: 22px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
+.student-workspace .student-summary-description { color: var(--ink-secondary); line-height: 1.8; }
+.student-workspace .student-submit-summary dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); padding: var(--space-5); margin: 0; border-radius: var(--radius); background: var(--surface-subtle); }
+.student-workspace .student-submit-summary dt { color: var(--muted); font-size: var(--text-caption); margin-bottom: var(--space-2); }
+.student-workspace .student-submit-summary dd { margin: 0; font-weight: 500; line-height: 1.65; overflow-wrap: anywhere; }
+.student-workspace .student-create .wizard-actions { margin-top: var(--space-6); padding-top: var(--space-5); }
+.student-workspace .student-create .submission-success { padding: var(--space-8) var(--space-5); }
+@keyframes student-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 860px) {
+  .student-workspace .student-quick-actions { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  .student-workspace .student-welcome .campus-hero-content { max-width: 100%; padding: var(--space-5); }
+  .student-workspace .student-current-card { padding: var(--space-5); }
+  .student-workspace .student-current-facts { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+  .student-workspace .student-current-card footer .primary-button { width: 100%; }
+  .student-workspace .student-order-card { padding: var(--space-4); }
+  .student-workspace .notice { flex-wrap: wrap; }
+  .student-workspace .student-create .wizard-surface { padding: var(--space-5); }
+  .student-workspace .student-fault-grid { grid-template-columns: minmax(0, 1fr); }
+  .student-workspace .student-fault-choice { padding: var(--space-4); }
+  .student-workspace .student-create .wizard-progress li { min-width: 58px; }
+  .student-workspace .student-create .wizard-progress { gap: var(--space-2); }
+  .student-workspace .student-create .wizard-progress small { font-size: 11px; }
+  .student-workspace .student-submit-summary dl { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+}
+@media (max-width: 420px) {
+  .student-workspace .student-create .wizard-actions { gap: var(--space-3); }
+  .student-workspace .student-create .wizard-actions > button { flex: 1; padding-inline: var(--space-3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .student-workspace :is(.student-welcome, .student-create .wizard-step-heading) { animation: none; }
+  .student-workspace :is(.student-order-card:hover, .student-quick-actions a:active, .student-fault-choice:active) { transform: none; }
+}
+
+.student-workspace .student-current-facts dt { color: var(--muted); font-size: var(--text-caption); margin-bottom: var(--space-2); }
+.student-workspace .student-current-facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; line-height: 1.65; }
